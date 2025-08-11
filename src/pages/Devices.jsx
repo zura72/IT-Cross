@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMsal } from "@azure/msal-react";
 
+/** ====== KONFIG ====== */
 const siteId =
   "waskitainfra.sharepoint.com,32252c41-8aed-4ed2-ba35-b6e2731b0d4a,fb2ae80c-1283-4942-a3e8-0d47e8d004fb";
 const listId = "95880dbf-54dc-4bbb-a438-d6519941a409";
@@ -8,32 +9,44 @@ const REST_URL = "https://waskitainfra.sharepoint.com/sites/ITHELPDESK";
 const GRAPH_SCOPE = ["Sites.ReadWrite.All"];
 const SHAREPOINT_SCOPE = ["https://waskitainfra.sharepoint.com/.default"];
 
+const PHOTO_FIELD_INTERNAL_NAME = "DevicePhoto";
+
+/** ====== KOMPONEN ====== */
 export default function Devices() {
   const { instance, accounts } = useMsal();
+
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
   const [userMap, setUserMap] = useState({});
-  const [filter, setFilter] = useState({ Status: "", Model: "", Divisi: "" });
   const [notif, setNotif] = useState("");
+  const [filter, setFilter] = useState({ Status: "", Model: "", Divisi: "" });
+
   const [modal, setModal] = useState({ open: false, mode: "", data: {} });
 
-  // Field mapping utk form & table (kolom foto dilewati di form)
-  const FIELDS = [
-    { name: "Foto", key: "Foto_x0020_Peralang" },
-    { name: "Title", key: "Title" },
-    { name: "Status", key: "Status" },
-    { name: "Tipe", key: "Model" },
-    { name: "Pabrikan", key: "Manufacturer" },
-    { name: "Nomor Serial", key: "SerialNumber" },
-    { name: "Pengguna", key: "CurrentOwnerLookupId" }, // lookup -> number (User ID)
-    { name: "Departemen", key: "Divisi" },
-    { name: "Antivirus", key: "AntiVirus" }, // yes/no -> boolean
-  ];
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState("");
+  const fileInputRef = useRef(null);
 
+  /** ====== Field Mapping untuk tabel & form ====== */
+  const FIELDS = useMemo(
+    () => [
+      { name: "Foto", key: "Foto_x0020_Peralang" },
+      { name: "Title", key: "Title" },
+      { name: "Status", key: "Status" },
+      { name: "Tipe", key: "Model" },
+      { name: "Pabrikan", key: "Manufacturer" },
+      { name: "Nomor Serial", key: "SerialNumber" },
+      { name: "Pengguna", key: "CurrentOwnerLookupId" },
+      { name: "Departemen", key: "Divisi" },
+      { name: "Antivirus", key: "AntiVirus" },
+    ],
+    []
+  );
+
+  /** ====== Fetch data list ====== */
   useEffect(() => {
     if (accounts.length > 0) fetchData();
-    // eslint-disable-next-line
   }, [accounts.length]);
 
   async function fetchData() {
@@ -44,6 +57,7 @@ export default function Devices() {
         scopes: GRAPH_SCOPE,
         account,
       });
+
       const res = await fetch(
         `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items?expand=fields`,
         { headers: { Authorization: `Bearer ${token.accessToken}` } }
@@ -53,56 +67,66 @@ export default function Devices() {
       setSelectedRow(null);
     } catch (err) {
       setNotif("Gagal mengambil data: " + err.message);
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
-  // Ambil nama user SP untuk render "Pengguna"
+  /** ====== Fetch nama user SP untuk CurrentOwnerLookupId ====== */
   useEffect(() => {
     if (!data || data.length === 0) return;
     const ids = Array.from(
-      new Set(data.map((d) => d.fields?.CurrentOwnerLookupId).filter(Boolean))
+      new Set(
+        data
+          .map((d) => d?.fields?.CurrentOwnerLookupId)
+          .filter((v) => v != null)
+      )
     );
     if (ids.length === 0) return;
-    let isActive = true;
 
-    async function fetchSPUsers() {
-      const account = accounts[0];
-      const token = await instance.acquireTokenSilent({
-        scopes: SHAREPOINT_SCOPE,
-        account,
-      });
-      const map = { ...userMap };
-      for (const id of ids) {
-        if (map[id]) continue;
-        try {
-          const res = await fetch(`${REST_URL}/_api/web/getuserbyid(${id})`, {
-            headers: {
-              Authorization: `Bearer ${token.accessToken}`,
-              Accept: "application/json;odata=verbose",
-            },
-          });
-          const txt = await res.text();
-          if (res.ok) {
-            const user = JSON.parse(txt);
-            map[id] = user?.d?.Title || user?.d?.Email || id;
-          } else {
-            map[id] = id;
+    let alive = true;
+    (async () => {
+      try {
+        const account = accounts[0];
+        const token = await instance.acquireTokenSilent({
+          scopes: SHAREPOINT_SCOPE,
+          account,
+        });
+        const map = { ...userMap };
+
+        for (const id of ids) {
+          if (map[id]) continue;
+          try {
+            const r = await fetch(`${REST_URL}/_api/web/getuserbyid(${id})`, {
+              headers: {
+                Authorization: `Bearer ${token.accessToken}`,
+                Accept: "application/json;odata=verbose",
+              },
+            });
+            const t = await r.text();
+            if (r.ok) {
+              const u = JSON.parse(t);
+              map[id] = u?.d?.Title || u?.d?.Email || String(id);
+            } else {
+              map[id] = String(id);
+            }
+          } catch {
+            map[id] = String(id);
           }
-        } catch {
-          map[id] = id;
         }
+        if (alive) setUserMap(map);
+      } catch (e) {
+        console.warn("getuserbyid failed", e);
       }
-      if (isActive) setUserMap(map);
-    }
+    })();
 
-    fetchSPUsers();
     return () => {
-      isActive = false;
+      alive = false;
     };
-    // eslint-disable-next-line
   }, [data]);
 
+  /** ====== Helpers filter & render ====== */
   function getUniqueOptions(fieldKey) {
     const opts = new Set();
     data.forEach((item) => {
@@ -124,7 +148,7 @@ export default function Devices() {
   function renderPhoto(fields) {
     let url = "";
     try {
-      let obj = fields?.DevicePhoto; // kalau kamu punya JSON penyimpan nama file
+      let obj = fields?.[PHOTO_FIELD_INTERNAL_NAME];
       if (typeof obj === "string") obj = JSON.parse(obj);
       if (fields.Attachments && obj?.fileName && fields.id) {
         url = `${REST_URL}/Lists/Devices/Attachments/${fields.id}/${obj.fileName}`;
@@ -149,21 +173,25 @@ export default function Devices() {
     return userMap[id] || id;
   }
 
-  // -------------- CRUD --------------
-
+  /** ====== CRUD handlers ====== */
   function handleTambah() {
+    resetPhoto();
     setModal({ open: true, mode: "create", data: {} });
   }
   function handleEdit() {
     if (!selectedRow) return;
+    resetPhoto();
     setModal({ open: true, mode: "edit", data: selectedRow.fields || {} });
   }
   async function handleDelete() {
     if (!selectedRow) return;
     if (
-      !window.confirm(`Yakin hapus device "${selectedRow.fields?.Title}"?`)
+      !window.confirm(
+        `Yakin hapus device "${selectedRow.fields?.Title || ""}"?`
+      )
     )
       return;
+
     setLoading(true);
     try {
       const account = accounts[0];
@@ -171,137 +199,232 @@ export default function Devices() {
         scopes: GRAPH_SCOPE,
         account,
       });
-      await fetch(
+      const res = await fetch(
         `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items/${selectedRow.id}`,
         { method: "DELETE", headers: { Authorization: `Bearer ${token.accessToken}` } }
       );
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || `HTTP ${res.status}`);
+      }
       setNotif("Data berhasil dihapus!");
-      fetchData();
+      await fetchData();
     } catch (e) {
+      console.error(e);
       setNotif("Gagal menghapus data: " + e.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
-  /**
-   * Bersihkan & susun payload fields agar PATCH/POST tidak 400:
-   * - hapus field kosong ""
-   * - konversi checkbox ke boolean
-   * - konversi lookup ke integer (tetap pakai nilai lama kalau input kosong)
-   */
-  function buildPatchFields(formData, oldFields) {
-    const raw = Object.fromEntries(formData.entries());
-    const fields = { ...oldFields }; // mulai dari nilai lama, supaya tidak mengosongkan choice/lookup tanpa sengaja
+  /** ====== Build fields whitelist untuk Graph ====== */
+  function buildFieldsFromForm(formEl) {
+    const fd = new FormData(formEl);
 
-    // override dari form
-    for (const [k, v] of Object.entries(raw)) {
-      fields[k] = v;
+    const allowed = [
+      "Title",
+      "Status",
+      "Model",
+      "Manufacturer",
+      "SerialNumber",
+      "CurrentOwnerLookupId",
+      "Divisi",
+      "AntiVirus",
+    ];
+
+    const out = {};
+    for (const key of allowed) {
+      if (fd.has(key)) out[key] = fd.get(key);
     }
 
-    // normalisasi
-    // AntiVirus => boolean
-    if ("AntiVirus" in raw) {
-      fields.AntiVirus =
-        raw.AntiVirus === "on" || raw.AntiVirus === "true" || raw.AntiVirus === true;
-    }
+    out.AntiVirus = fd.has("AntiVirus");
 
-    // Lookup => integer; kalau input kosong, kembalikan ke nilai lama (biar gak kirim "")
-    if ("CurrentOwnerLookupId" in raw) {
-      const val = String(raw.CurrentOwnerLookupId || "").trim();
-      if (val === "") {
-        // biarkan nilai lama (jangan kirim string kosong)
-        fields.CurrentOwnerLookupId = oldFields?.CurrentOwnerLookupId ?? undefined;
-        if (fields.CurrentOwnerLookupId === undefined)
-          delete fields.CurrentOwnerLookupId;
-      } else {
-        const n = parseInt(val, 10);
-        if (!Number.isNaN(n)) fields.CurrentOwnerLookupId = n;
-        else delete fields.CurrentOwnerLookupId; // hindari kirim string invalid
+    if (!out.CurrentOwnerLookupId) {
+      delete out.CurrentOwnerLookupId;
+    } else {
+      const id = parseInt(out.CurrentOwnerLookupId, 10);
+      if (!Number.isFinite(id)) {
+        throw new Error("Pengguna harus angka (SharePoint User ID).");
       }
+      out.CurrentOwnerLookupId = id;
     }
 
-    // hapus field yang benar-benar kosong "" (terutama choice) supaya Graph tidak error
-    for (const k of Object.keys(fields)) {
-      if (fields[k] === "") delete fields[k];
-    }
+    Object.keys(out).forEach((k) => {
+      if (out[k] === "" || out[k] == null) delete out[k];
+    });
 
-    // pastikan tidak mengirim kolom foto/attachment via fields
-    delete fields.Foto_x0020_Peralang;
-    delete fields.DevicePhoto;
-
-    return fields;
+    return out;
   }
 
-  async function doCreateOrEdit(e) {
-  e.preventDefault();
-  setLoading(true);
-
-  const formData = new FormData(e.target);
-  const fields = Object.fromEntries(formData.entries());
-  if ("AntiVirus" in fields) fields.AntiVirus = !!fields.AntiVirus;
-
-  try {
+  /** ====== Upload attachment & set field foto ====== */
+  async function uploadAttachment(itemId, file) {
     const account = accounts[0];
-    // pastikan token ReadWrite; kalau silent gagal, popup
-    const token = await (async () => {
-      try {
-        return await instance.acquireTokenSilent({ scopes: GRAPH_SCOPE, account });
-      } catch {
-        return await instance.acquireTokenPopup({ scopes: GRAPH_SCOPE, account });
-      }
-    })();
+    const spTok = await instance.acquireTokenSilent({
+      scopes: SHAREPOINT_SCOPE,
+      account,
+    });
 
-    if (modal.mode === "create") {
-      const res = await fetch(
-        `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token.accessToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ fields }),
-        }
-      );
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(`Create failed ${res.status}: ${txt}`);
-      }
-      setNotif("Data berhasil ditambahkan!");
-    } else if (modal.mode === "edit" && selectedRow) {
-      // PATCH ke /fields dengan body = fields langsung
-      const res = await fetch(
-        `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items/${selectedRow.id}/fields`,
-        {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${token.accessToken}`,
-            "Content-Type": "application/json",
-            "If-Match": "*", // toleran terhadap ETag
-          },
-          body: JSON.stringify(fields),
-        }
-      );
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(`Edit failed ${res.status}: ${txt}`);
-      }
-      setNotif("Data berhasil diedit!");
+    const fileName = file.name;
+    const buf = await file.arrayBuffer();
+
+    const upUrl = `${REST_URL}/_api/web/lists(guid'${listId}')/items(${itemId})/AttachmentFiles/add(FileName='${encodeURIComponent(
+      fileName
+    )}')`;
+
+    const res = await fetch(upUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${spTok.accessToken}`,
+        Accept: "application/json;odata=verbose",
+        "Content-Type": "application/octet-stream",
+      },
+      body: buf,
+    });
+
+    const text = await res.text();
+    if (!res.ok) {
+      console.error("Upload error:", text);
+      throw new Error("Gagal upload lampiran");
     }
-
-    setModal({ open: false, mode: "", data: {} });
-    fetchData();
-  } catch (err) {
-    console.error(err);
-    setNotif("Gagal simpan: " + err.message);
-  } finally {
-    setLoading(false);
+    return { fileName };
   }
-}
 
+  async function setPhotoField(itemId, saved) {
+    if (!saved?.fileName) return;
 
-  // -------------- UI --------------
+    const account = accounts[0];
+    const gTok = await instance.acquireTokenSilent({
+      scopes: GRAPH_SCOPE,
+      account,
+    });
 
+    const body = {
+      [PHOTO_FIELD_INTERNAL_NAME]: JSON.stringify({
+        fileName: saved.fileName,
+      }),
+    };
+
+    const res = await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items/${itemId}/fields`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${gTok.accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      }
+    );
+
+    if (!res.ok) {
+      const t = await res.text();
+      console.warn("Set photo field failed:", t);
+    }
+  }
+
+  /** ====== Submit create/edit ====== */
+  async function doCreateOrEdit(e) {
+    e.preventDefault();
+    if (loading) return;
+    setLoading(true);
+
+    try {
+      const fields = buildFieldsFromForm(e.currentTarget);
+
+      const account = accounts[0];
+      const gTok = await instance.acquireTokenSilent({
+        scopes: GRAPH_SCOPE,
+        account,
+      });
+
+      const readGraphError = async (res) => {
+        let msg = `HTTP ${res.status}`;
+        try {
+          const t = await res.text();
+          const j = JSON.parse(t);
+          console.log("Graph error detail:", j);
+          msg = j?.error?.message || msg;
+        } catch {
+        }
+        return msg;
+      };
+
+      if (modal.mode === "create") {
+        const res = await fetch(
+          `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${gTok.accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ fields }),
+          }
+        );
+        if (!res.ok) throw new Error(await readGraphError(res));
+
+        const created = await res.json();
+        const newId = created?.id || created?.value?.[0]?.id;
+
+        if (photoFile && newId) {
+          const saved = await uploadAttachment(newId, photoFile);
+          await setPhotoField(newId, saved);
+        }
+
+        setNotif("Data berhasil ditambahkan!");
+      } else if (modal.mode === "edit" && selectedRow) {
+        const res = await fetch(
+          `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items/${selectedRow.id}`,
+          {
+            method: "PATCH",
+            headers: {
+              Authorization: `Bearer ${gTok.accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ fields }),
+          }
+        );
+        if (!res.ok) throw new Error(await readGraphError(res));
+
+        if (photoFile) {
+          const saved = await uploadAttachment(selectedRow.id, photoFile);
+          await setPhotoField(selectedRow.id, saved);
+        }
+
+        setNotif("Data berhasil diedit!");
+      }
+
+      setModal({ open: false, mode: "", data: {} });
+      resetPhoto();
+      await fetchData();
+    } catch (err) {
+      console.error(err);
+      setNotif("Gagal simpan: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /** ====== Foto helpers ====== */
+  function onPickPhoto(e) {
+    const f = e.target.files?.[0];
+    if (f) {
+      setPhotoFile(f);
+      const url = URL.createObjectURL(f);
+      setPhotoPreview(url);
+    }
+  }
+  function removePhoto() {
+    setPhotoFile(null);
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    setPhotoPreview("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+  function resetPhoto() {
+    removePhoto();
+  }
+
+  /** ====== UI ====== */
   return (
     <div className="relative min-h-screen flex flex-col items-center py-8 bg-gray-50 dark:bg-gray-900">
       <div
@@ -313,88 +436,210 @@ export default function Devices() {
           `,
         }}
       />
-      {/* Notif */}
+
       {notif && (
         <div
-          className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-green-600 text-white px-6 py-3 rounded shadow-md font-bold animate-fade-in-down"
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-green-600 text-white px-6 py-3 rounded shadow-md font-bold"
           onClick={() => setNotif("")}
         >
           {notif}
         </div>
       )}
 
-      {/* Modal Form */}
       {modal.open && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-          <div className="bg-white rounded-xl p-7 min-w-[400px] max-w-lg w-full shadow-xl relative">
+          <div className="bg-white rounded-2xl p-6 sm:p-7 w-[92vw] max-w-2xl shadow-2xl relative">
             <button
-              onClick={() => setModal({ open: false, mode: "", data: {} })}
+              onClick={() => {
+                setModal({ open: false, mode: "", data: {} });
+                resetPhoto();
+              }}
               className="absolute right-3 top-2 text-2xl font-bold text-gray-400 hover:text-black"
               type="button"
             >
               ×
             </button>
-            <h3 className="font-bold text-xl mb-4">
+
+            <h3 className="font-bold text-xl mb-5">
               {modal.mode === "edit" ? "Edit" : "Tambah"} Device
             </h3>
 
-            <form onSubmit={doCreateOrEdit}>
-              {FIELDS.filter((f) => f.key !== "Foto_x0020_Peralang").map((f) => (
-                <div key={f.key} className="mb-4">
-                  <label className="block text-sm font-semibold mb-1">
-                    {f.name}
-                  </label>
-
-                  {/* Dropdown untuk kolom Choice */}
-                  {["Status", "Manufacturer", "Divisi"].includes(f.key) ? (
-                    <select
-                      name={f.key}
-                      defaultValue={modal.data[f.key] || ""}
-                      className="border rounded w-full px-3 py-2"
-                      required={f.key === "Title"}
+            <form onSubmit={doCreateOrEdit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold mb-1">Foto</label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={onPickPhoto}
+                  className="block w-full text-sm file:mr-4 file:py-2 file:px-4
+                           file:rounded-md file:border-0 file:text-sm file:font-semibold
+                           file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+                {photoPreview ? (
+                  <div className="mt-3 flex items-center gap-3">
+                    <img
+                      src={photoPreview}
+                      alt="preview"
+                      className="h-20 w-20 object-cover rounded-lg border"
+                    />
+                    <button
+                      type="button"
+                      onClick={removePhoto}
+                      className="text-red-600 hover:underline"
                     >
-                      <option value="">Pilih {f.name}</option>
-                      {getUniqueOptions(f.key).map((opt) => (
-                        <option key={opt} value={opt}>
+                      Hapus foto
+                    </button>
+                  </div>
+                ) : modal.data?.[PHOTO_FIELD_INTERNAL_NAME] ? (
+                  <OldPhotoPreview meta={modal.data[PHOTO_FIELD_INTERNAL_NAME]} fields={modal.data} />
+                ) : null}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold mb-1">
+                    Title
+                  </label>
+                  <input
+                    name="Title"
+                    defaultValue={modal.data?.Title || ""}
+                    className="border rounded w-full px-3 py-2"
+                    required
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold mb-1">
+                    Tipe
+                  </label>
+                  <input
+                    name="Model"
+                    defaultValue={modal.data?.Model || ""}
+                    className="border rounded w-full px-3 py-2"
+                    placeholder="PERSONAL COMPUTER (PC)"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold mb-1">
+                    Status
+                  </label>
+                  <select
+                    name="Status"
+                    defaultValue={modal.data?.Status || ""}
+                    className="border rounded w-full px-3 py-2"
+                  >
+                    <option value="">Pilih Status</option>
+                    {getUniqueOptions("Status").map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                    {["TERSEDIA", "DIPAKAI", "PERBAIKAN"].map((opt) => (
+                      <option key={`s-${opt}`} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold mb-1">
+                    Pabrikan
+                  </label>
+                  <select
+                    name="Manufacturer"
+                    defaultValue={modal.data?.Manufacturer || ""}
+                    className="border rounded w-full px-3 py-2"
+                  >
+                    <option value="">Pilih Pabrikan</option>
+                    {getUniqueOptions("Manufacturer").map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                    {["DELL", "HP", "LENOVO", "ASUS", "ACER", "SAMSUNG"].map(
+                      (opt) => (
+                        <option key={`m-${opt}`} value={opt}>
                           {opt}
                         </option>
-                      ))}
-                    </select>
-                  ) : f.key === "AntiVirus" ? (
-                    <input
-                      name={f.key}
-                      type="checkbox"
-                      className="h-5 w-5"
-                      defaultChecked={modal.data[f.key] || false}
-                    />
-                  ) : (
-                    <input
-                      name={f.key}
-                      defaultValue={modal.data[f.key] || ""}
-                      className="border rounded w-full px-3 py-2"
-                      required={f.key === "Title"}
-                      autoFocus={f.key === "Title"}
-                      placeholder={
-                        f.key === "CurrentOwnerLookupId"
-                          ? "ID user (angka) untuk lookup"
-                          : undefined
-                      }
-                    />
-                  )}
+                      )
+                    )}
+                  </select>
                 </div>
-              ))}
+
+                <div>
+                  <label className="block text-sm font-semibold mb-1">
+                    Nomor Serial
+                  </label>
+                  <input
+                    name="SerialNumber"
+                    defaultValue={modal.data?.SerialNumber || ""}
+                    className="border rounded w-full px-3 py-2"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold mb-1">
+                    Pengguna
+                  </label>
+                  <input
+                    name="CurrentOwnerLookupId"
+                    defaultValue={
+                      modal.data?.CurrentOwnerLookupId
+                        ? String(modal.data.CurrentOwnerLookupId)
+                        : ""
+                    }
+                    className="border rounded w-full px-3 py-2"
+                    placeholder="ID user (angka) untuk lookup"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold mb-1">
+                    Departemen
+                  </label>
+                  <select
+                    name="Divisi"
+                    defaultValue={modal.data?.Divisi || ""}
+                    className="border rounded w-full px-3 py-2"
+                  >
+                    <option value="">Pilih Departemen</option>
+                    {getUniqueOptions("Divisi").map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2 mt-6 sm:mt-0">
+                  <input
+                    name="AntiVirus"
+                    type="checkbox"
+                    defaultChecked={!!modal.data?.AntiVirus}
+                    className="h-5 w-5"
+                  />
+                  <label className="text-sm font-semibold">Antivirus</label>
+                </div>
+              </div>
 
               <div className="flex gap-2 mt-6 justify-end">
                 <button
                   type="button"
                   className="px-4 py-2 rounded bg-gray-200"
-                  onClick={() => setModal({ open: false, mode: "", data: {} })}
+                  onClick={() => {
+                    setModal({ open: false, mode: "", data: {} });
+                    resetPhoto();
+                  }}
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded bg-blue-600 text-white font-bold"
+                  className="px-5 py-2 rounded bg-blue-600 text-white font-bold disabled:opacity-60"
                   disabled={loading}
                 >
                   {modal.mode === "edit" ? "Simpan" : "Tambah"}
@@ -405,43 +650,12 @@ export default function Devices() {
         </div>
       )}
 
-      {/* Table */}
       <div className="relative z-10 w-full flex flex-col items-center">
         <div className="bg-white/95 dark:bg-gray-800/90 rounded-2xl p-10 w-full max-w-[95vw] shadow-xl mt-8">
           <div className="flex flex-wrap justify-between items-center mb-5 gap-2">
             <h2 className="text-3xl font-bold mb-2 text-[#215ba6] dark:text-white">
               Devices
             </h2>
-            <div className="flex gap-2">
-              <button
-                className={`px-5 py-2 rounded ${
-                  selectedRow
-                    ? "bg-yellow-500 hover:bg-yellow-600 text-black"
-                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                }`}
-                disabled={!selectedRow}
-                onClick={handleEdit}
-              >
-                Edit
-              </button>
-              <button
-                className={`px-5 py-2 rounded ${
-                  selectedRow
-                    ? "bg-red-600 hover:bg-red-700 text-white"
-                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                }`}
-                disabled={!selectedRow}
-                onClick={handleDelete}
-              >
-                Hapus
-              </button>
-              <button
-                className="px-5 py-2 rounded bg-cyan-600 hover:bg-cyan-700 text-white font-bold"
-                onClick={handleTambah}
-              >
-                + Tambah Data
-              </button>
-            </div>
           </div>
 
           <div className="flex flex-wrap items-center mb-6 gap-3">
@@ -459,7 +673,6 @@ export default function Devices() {
                 </option>
               ))}
             </select>
-
             <select
               className="px-3 py-2 rounded border border-gray-300 dark:bg-gray-700 dark:text-white"
               value={filter.Model}
@@ -474,7 +687,6 @@ export default function Devices() {
                 </option>
               ))}
             </select>
-
             <select
               className="px-3 py-2 rounded border border-gray-300 dark:bg-gray-700 dark:text-white"
               value={filter.Divisi}
@@ -489,13 +701,18 @@ export default function Devices() {
                 </option>
               ))}
             </select>
-
             <button
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
               onClick={fetchData}
               disabled={loading}
             >
               {loading ? "Loading..." : "Refresh"}
+            </button>
+            <button
+              className="px-5 py-2 rounded bg-cyan-600 hover:bg-cyan-700 text-white font-bold"
+              onClick={handleTambah}
+            >
+              + Tambah Data
             </button>
           </div>
 
@@ -508,13 +725,14 @@ export default function Devices() {
                       {field.name}
                     </th>
                   ))}
+                  <th className="px-5 py-4 text-left sm:text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
                     <td
-                      colSpan={FIELDS.length}
+                      colSpan={FIELDS.length + 1}
                       className="px-5 py-10 text-center text-gray-400"
                     >
                       Loading data...
@@ -523,7 +741,7 @@ export default function Devices() {
                 ) : getFiltered().length === 0 ? (
                   <tr>
                     <td
-                      colSpan={FIELDS.length}
+                      colSpan={FIELDS.length + 1}
                       className="px-5 py-10 text-center text-gray-400"
                     >
                       Data tidak ditemukan.
@@ -567,7 +785,35 @@ export default function Devices() {
                         {item.fields?.Divisi ?? ""}
                       </td>
                       <td className="px-5 py-3 text-gray-800 dark:text-gray-100">
-                        {item.fields?.AntiVirus ? <span className="text-xl">✔️</span> : ""}
+                        {item.fields?.AntiVirus ? (
+                          <span className="text-xl">✔️</span>
+                        ) : (
+                          ""
+                        )}
+                      </td>
+                      <td className="px-5 py-3">
+                        {selectedRow && selectedRow.id === item.id ? (
+                          <div className="flex gap-2 justify-start sm:justify-end">
+                            <button
+                              className="px-4 py-1.5 rounded bg-yellow-500 hover:bg-yellow-600 text-black"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit();
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="px-4 py-1.5 rounded bg-red-600 hover:bg-red-700 text-white"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete();
+                              }}
+                            >
+                              Hapus
+                            </button>
+                          </div>
+                        ) : null}
                       </td>
                     </tr>
                   ))
@@ -579,4 +825,26 @@ export default function Devices() {
       </div>
     </div>
   );
+}
+
+/** Preview foto lama (kalau ada metadata simpanan) */
+function OldPhotoPreview({ meta, fields }) {
+  try {
+    let obj = meta;
+    if (typeof obj === "string") obj = JSON.parse(obj);
+    if (fields?.id && obj?.fileName) {
+      const url = `${REST_URL}/Lists/Devices/Attachments/${fields.id}/${obj.fileName}`;
+      return (
+        <div className="mt-3">
+          <img
+            src={url}
+            alt="current"
+            className="h-20 w-20 object-cover rounded-lg border"
+          />
+        </div>
+      );
+    }
+  } catch {
+  }
+  return null;
 }
