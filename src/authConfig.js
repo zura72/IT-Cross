@@ -1,11 +1,10 @@
-const isLocalhost = window.location.hostname === "localhost";
-
+// src/authConfig.js
 export function getMsalConfig(persistent = false) {
   return {
     auth: {
-      clientId: "f536a53d-8a16-45cf-9acf-d8c77212b605", // GANTI DENGAN PUNYAMU!
+      clientId: "f536a53d-8a16-45cf-9acf-d8c77212b605",
       authority: "https://login.microsoftonline.com/94526da5-8783-4516-9eb7-8c58bbf66a2d",
-      redirectUri: "https://waskita-karya-infrastruktur-it-dashboard.site/login",
+      redirectUri: "http://localhost:8080/login",
     },
     cache: {
       cacheLocation: persistent ? "localStorage" : "sessionStorage",

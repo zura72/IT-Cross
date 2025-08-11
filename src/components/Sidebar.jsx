@@ -27,16 +27,16 @@ export default function Sidebar({ dark, toggleDark }) {
       <div className="flex flex-col h-full w-64">
         {/* Logo + Judul */}
         <div className="flex items-center justify-center mt-8 mb-2">
-  <img
-    src="/logo-wki.png"
-    alt="Waskita Infrastruktur Logo"
-    className="h-12 w-12 rounded-full shadow-md bg-white object-contain"
-    style={{ background: "white" }}
-  />
-  <span className="ml-4 text-xl font-bold text-[#215ba6] dark:text-white tracking-wide leading-tight">
-    Waskita Karya<br />Infrastruktur<br /><span className="font-normal">IT Asset<br />Management</span>
-  </span>
-</div>
+          <img
+            src="/logo-wki.png"
+            alt="Waskita Infrastruktur Logo"
+            className="h-12 w-12 rounded-full shadow-md bg-white object-contain"
+            style={{ background: "white" }}
+          />
+          <span className="ml-4 text-xl font-bold text-[#215ba6] dark:text-white tracking-wide leading-tight">
+            Waskita Karya<br />Infrastruktur<br /><span className="font-normal">IT Asset<br />Management</span>
+          </span>
+        </div>
 
         {/* Menu */}
         <nav className="mt-10 flex-1 flex flex-col space-y-1">
