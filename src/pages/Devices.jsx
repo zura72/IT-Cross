@@ -172,6 +172,140 @@ export default function Devices() {
     );
   }
 
+  // ====== PRINT HELPERS (tanpa popup) ======
+  function getPhotoUrlFromFields(fields) {
+    try {
+      const PHOTO_FIELD_INTERNAL_NAME = "DevicePhoto";
+      let obj = fields?.[PHOTO_FIELD_INTERNAL_NAME];
+      if (typeof obj === "string") obj = JSON.parse(obj);
+      if (fields?.Attachments && obj?.fileName && fields?.id) {
+        return `${REST_URL}/Lists/Devices/Attachments/${fields.id}/${obj.fileName}`;
+      }
+    } catch {}
+    return "";
+  }
+
+  function buildPrintHTML(rows, userMap) {
+    const now = new Date().toLocaleString();
+    const head = `
+      <meta charset="utf-8" />
+      <title>Devices - Print</title>
+      <style>
+        /* Kertas & margin */
+        @page { size: A4 landscape; margin: 12mm; }
+        html, body { color:#000; font: 12px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        h2 { margin: 0 0 6px 0; }
+        .meta { font-size: 12px; color:#6b7280; margin-bottom: 12px; }
+
+        /* Tabel dan border tebal */
+        table { width: 100%; border-collapse: collapse; font-size: 12px; border: 1.5pt solid #000; }
+        thead th { background: #f3f4f6; text-align: left; border: 1.2pt solid #000; }
+        th, td { padding: 8px 10px; vertical-align: top; }
+        tbody td { border: 0.9pt solid #000; }
+        tr { page-break-inside: avoid; }
+        thead { display: table-header-group; }
+        tfoot { display: table-row-group; }
+
+        /* Foto */
+        td img { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; display:block; border: 0.9pt solid #000; }
+        .center { text-align:center; }
+      </style>
+    `;
+
+    const bodyRows = rows
+      .map((item) => {
+        const f = item.fields || {};
+        const photo = getPhotoUrlFromFields({ ...f, id: item.id });
+        const pengguna = f.CurrentOwnerLookupId ? (userMap[f.CurrentOwnerLookupId] || f.CurrentOwnerLookupId) : "";
+        const av = f.AntiVirus ? "✔" : "";
+        return `
+          <tr>
+            <td class="center">${photo ? `<img src="${photo}" />` : "—"}</td>
+            <td>${f.Title ?? ""}</td>
+            <td>${f.Status ?? ""}</td>
+            <td>${f.Model ?? ""}</td>
+            <td>${f.Manufacturer ?? ""}</td>
+            <td>${f.SerialNumber ?? ""}</td>
+            <td>${pengguna}</td>
+            <td>${f.Divisi ?? ""}</td>
+            <td class="center">${av}</td>
+          </tr>
+        `;
+      })
+      .join("");
+
+    return `<!doctype html>
+      <html>
+        <head>${head}</head>
+        <body>
+          <h2>Devices</h2>
+          <div class="meta">Dicetak: ${now}</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Foto</th>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Tipe</th>
+                <th>Pabrikan</th>
+                <th>Nomor Serial</th>
+                <th>Pengguna</th>
+                <th>Departemen</th>
+                <th>Antivirus</th>
+              </tr>
+            </thead>
+            <tbody>${bodyRows}</tbody>
+          </table>
+        </body>
+      </html>`;
+  }
+
+  async function printViaHiddenIframe(html) {
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    // tunggu gambar supaya ikut tercetak
+    const imgs = iframe.contentDocument.images;
+    const waits = Array.from(imgs).map((img) =>
+      img.complete
+        ? Promise.resolve()
+        : new Promise((res) => {
+            img.onload = img.onerror = res;
+          })
+    );
+    await Promise.all(waits);
+
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+
+    setTimeout(() => document.body.removeChild(iframe), 1000);
+  }
+
+  // tombol: cetak sesuai filter aktif
+  async function handlePrintFiltered() {
+    const rows = getFiltered(); // fungsi kamu yang sudah ada
+    const html = buildPrintHTML(rows, userMap);
+    await printViaHiddenIframe(html);
+  }
+
+  // tombol: cetak semua data (abaikan filter)
+  async function handlePrintAll() {
+    const rows = data || [];
+    const html = buildPrintHTML(rows, userMap);
+    await printViaHiddenIframe(html);
+  }
+
   function renderPengguna(fields) {
     const id = fields?.CurrentOwnerLookupId;
     if (!id) return "";
@@ -188,17 +322,25 @@ export default function Devices() {
   function buildPrintHTML(rows) {
     const printedAt = new Date().toLocaleString();
     const head = `
-      <meta charset="utf-8" />
+      <meta charset=\"utf-8\" />
       <title>Devices — Print</title>
       <style>
+        /* Kertas & margin */
         @page { size: A4 landscape; margin: 12mm; }
-        body { font: 12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: #111; }
+        html, body { color:#000; font: 12px system-ui,-apple-system,Segoe UI,Roboto,sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         h1 { font-size: 18px; margin: 0 0 6px; }
         .meta { font-size: 11px; margin: 0 0 12px; color:#555; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #ddd; padding: 6px 8px; vertical-align: top; }
-        th { background: #f0f6ff; text-align: left; }
-        td img { height: 48px; width: 64px; object-fit: cover; border-radius: 6px; }
+
+        /* Tabel dan border tebal */
+        table { width: 100%; border-collapse: collapse; border: 1.5pt solid #000; }
+        thead th { background: #f0f6ff; text-align: left; border: 1.2pt solid #000; }
+        th, td { padding: 6px 8px; vertical-align: top; }
+        tbody td { border: 0.9pt solid #000; }
+        tr { page-break-inside: avoid; }
+        thead { display: table-header-group; }
+        tfoot { display: table-row-group; }
+
+        td img { height: 48px; width: 64px; object-fit: cover; border-radius: 6px; border: 0.9pt solid #000; }
         .center { text-align: center; }
       </style>
     `;
@@ -227,9 +369,7 @@ export default function Devices() {
           esc(f.Divisi),
           antivirus,
         ]
-          .map((v, idx) =>
-            idx === 0 ? `<td class="center">${v}</td>` : `<td>${v}</td>`
-          )
+          .map((v, idx) => (idx === 0 ? `<td class=\"center\">${v}</td>` : `<td>${v}</td>`))
           .join("");
 
         return `<tr>${cells}</tr>`;
@@ -290,12 +430,7 @@ export default function Devices() {
   }
   async function handleDelete() {
     if (!selectedRow) return;
-    if (
-      !window.confirm(
-        `Yakin hapus device "${selectedRow.fields?.Title || ""}"?`
-      )
-    )
-      return;
+    if (!window.confirm(`Yakin hapus device "${selectedRow.fields?.Title || ""}"?`)) return;
 
     setLoading(true);
     try {
@@ -528,7 +663,223 @@ export default function Devices() {
     removePhoto();
   }
 
-    /** ====== UI ====== */
+  // ==== CETAK: via hidden iframe (no popup) ====
+  const PRINT_CSS = `
+    * { box-sizing: border-box; }
+    body { font: 12px/1.45 'Inter', Arial, sans-serif; color: #111; margin: 24px; }
+    h1 { margin: 0 0 4px; font-size: 20px; }
+    .meta { color:#555; margin: 0 0 14px; font-size: 11px; }
+    table { width: 100%; border-collapse: collapse; border: 1.5pt solid #000; }
+    th, td { border: 0.9pt solid #000; padding: 6px 8px; vertical-align: top; }
+    thead th { background: #eef4ff; text-align: left; border: 1.2pt solid #000; }
+    tbody tr:nth-child(even) { background: #fbfdff; }
+    .img { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border:0.9pt solid #000; }
+    .check { font-size: 16px; }
+    @page { margin: 16mm; }
+  `;
+
+  // Ambil URL foto dari fields (sama logika dengan renderPhoto)
+  function getPhotoUrl(fields) {
+    try {
+      let obj = fields?.[PHOTO_FIELD_INTERNAL_NAME];
+      if (typeof obj === "string") obj = JSON.parse(obj);
+      if (fields.Attachments && obj?.fileName && fields.id) {
+        return `${REST_URL}/Lists/Devices/Attachments/${fields.id}/${obj.fileName}`;
+      }
+    } catch {}
+    return "";
+  }
+
+  // Buat HTML <table> dari array item
+  function buildTableHTML(items) {
+    const head = `
+      <thead>
+        <tr>
+          ${FIELDS.map((f) => `<th>${f.name}</th>`).join("")}
+        </tr>
+      </thead>
+    `;
+
+    const bodyRows = items
+      .map((it) => {
+        const f = it.fields || {};
+        const tds = FIELDS.map((col) => {
+          switch (col.key) {
+            case "Foto_x0020_Peralang": {
+              const url = getPhotoUrl(f);
+              return `<td>${url ? `<img class=\"img\" src=\"${url}\"/>` : ""}</td>`;
+            }
+            case "CurrentOwnerLookupId": {
+              const v = f.CurrentOwnerLookupId ? (userMap[f.CurrentOwnerLookupId] || f.CurrentOwnerLookupId) : "";
+              return `<td>${String(v ?? "")}</td>`;
+            }
+            case "AntiVirus": {
+              return `<td>${f.AntiVirus ? `<span class=\"check\">✔️</span>` : ""}</td>`;
+            }
+            default: {
+              const v = f[col.key];
+              return `<td>${v != null ? String(v) : ""}</td>`;
+            }
+          }
+        }).join("");
+        return `<tr>${tds}</tr>`;
+      })
+      .join("");
+
+    return `<table>${head}<tbody>${bodyRows}</tbody></table>`;
+  }
+
+  // Cetak: items = getFiltered() (untuk Print Filter) atau data (untuk Print Semua)
+  function printViaIframe(items, title = "Devices") {
+    const now = new Date();
+    const htmlDoc = `
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset=\"utf-8\"/>
+          <title>${title}</title>
+          <style>${PRINT_CSS}</style>
+        </head>
+        <body>
+          <h1>${title}</h1>
+          <div class=\"meta\">\n            Total baris: ${items.length} &middot; Dicetak: ${now.toLocaleString()}\n          </div>
+          ${buildTableHTML(items)}
+        </body>
+      </html>
+    `;
+
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(htmlDoc);
+    doc.close();
+
+    // Tunggu render, lalu print & cleanup
+    iframe.onload = () => {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } finally {
+        setTimeout(() => document.body.removeChild(iframe), 1200);
+      }
+    };
+  }
+
+  // Handler tombol
+  function handlePrintFiltered() {
+    printViaIframe(getFiltered(), "Devices (Sesuai Filter)");
+  }
+  function handlePrintAll() {
+    printViaIframe(
+      // urutkan sama seperti tampilan (opsional)
+      data.slice(),
+      "Devices (Semua Data)"
+    );
+  }
+
+  // ==== QUICK PRINT: cetak DOM yang sudah ada (tanpa popup/iframe) ====
+  const INLINE_PRINT_CSS = `
+    @media print {
+      body { background: white !important; }
+      /* Sembunyikan SEMUA, lalu tampilkan hanya area yang mau dicetak */
+      body * { visibility: hidden !important; }
+      #print-area, #print-area * { visibility: visible !important; }
+      #print-area { position: absolute; left: 0; top: 0; width: 100vw; }
+      /* Hapus elemen yang tidak perlu di print */
+      #print-area .no-print { display: none !important; }
+      #print-area table { width: 100%; border-collapse: collapse; border: 1.5pt solid #000; }
+      #print-area th, #print-area td { border: 0.9pt solid #000; padding: 6px 8px; }
+      #print-area thead th { background: #eef4ff; text-align: left; border: 1.2pt solid #000; }
+    }
+  `;
+
+  // inject CSS print hanya sekali
+  let injectedInlineCss = false;
+  function ensureInlinePrintCss() {
+    if (injectedInlineCss) return;
+    const style = document.createElement("style");
+    style.textContent = INLINE_PRINT_CSS;
+    document.head.appendChild(style);
+    injectedInlineCss = true;
+  }
+
+  // Print CEPAT untuk tampilan yang sedang difilter (pakai tabel yang sudah nampak)
+  function handlePrintFiltered() {
+    ensureInlinePrintCss();
+    // pastikan layout settle dulu
+    requestAnimationFrame(() => window.print());
+  }
+
+  /* ==== QUICK PRINT ALL (tanpa foto, super cepat) ==== */
+  const PAGE_HIDE_TO_PRINT_TEMP = `
+    @media print {
+      body * { visibility: hidden !important; }
+      #print-temp, #print-temp * { visibility: visible !important; }
+      #print-temp { position: absolute; left: 0; top: 0; width: 100%; }
+      #print-temp table { width: 100%; border-collapse: collapse; border: 1.5pt solid #000; }
+      #print-temp th, #print-temp td { border: 0.9pt solid #000; padding: 6px 8px; }
+      #print-temp thead th { background: #eef4ff; text-align: left; border: 1.2pt solid #000; }
+    }
+  `;
+
+  // Bangun tabel HTML cepat TANPA foto (lebih ngebut)
+  function buildTableHTMLNoPhoto(items) {
+    const cols = FIELDS.filter((c) => c.key !== "Foto_x0020_Peralang");
+    const head = `<thead><tr>${cols.map((c) => `<th>${c.name}</th>`).join("")}</tr></thead>`;
+    const body = items
+      .map((it) => {
+        const f = it.fields || {};
+        const tds = cols
+          .map((col) => {
+            if (col.key === "CurrentOwnerLookupId") {
+              const v = f.CurrentOwnerLookupId ? (userMap[f.CurrentOwnerLookupId] || f.CurrentOwnerLookupId) : "";
+              return `<td>${String(v ?? "")}</td>`;
+            }
+            if (col.key === "AntiVirus") {
+              return `<td>${f.AntiVirus ? "✔️" : ""}</td>`;
+            }
+            return `<td>${f[col.key] != null ? String(f[col.key]) : ""}</td>`;
+          })
+          .join("");
+        return `<tr>${tds}</tr>`;
+      })
+      .join("");
+    return `<table>${head}<tbody>${body}</tbody></table>`;
+  }
+
+  function handlePrintAllFast() {
+    // buat container sementara di halaman yg sama (no popup)
+    const div = document.createElement("div");
+    div.id = "print-temp";
+    div.style.position = "fixed";
+    div.style.left = "-10000px"; // sembunyikan di layar
+    const html = `
+      <style>${PAGE_HIDE_TO_PRINT_TEMP}</style>
+      <h1>Devices (Semua Data)</h1>
+      <div style="margin:6px 0 12px;color:#555;font-size:12px">
+        Total baris: ${data.length} &middot; Dicetak: ${new Date().toLocaleString()}
+      </div>
+      ${buildTableHTMLNoPhoto(data)}
+    `;
+    div.innerHTML = html;
+    document.body.appendChild(div);
+
+    // cetak & bersihkan
+    requestAnimationFrame(() => {
+      window.print();
+      setTimeout(() => div.remove(), 800);
+    });
+  }
+
+  /** ====== UI ====== */
   return (
     <div className="relative min-h-screen flex flex-col items-center py-8 bg-gray-50 dark:bg-gray-900">
       <div
@@ -749,18 +1100,19 @@ export default function Devices() {
             </h2>
 
             {/* Tombol Print */}
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center mb-6 gap-3">
+              {/* ... select2 & Refresh & Tambah ... */}
+
               <button
-                className="px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
-                onClick={() => handlePrint(false)}
-                title="Cetak data sesuai filter aktif"
+                className="px-4 py-2 rounded border border-gray-300 hover:bg-gray-100"
+                onClick={handlePrintFiltered}
               >
                 Print (Filter)
               </button>
+
               <button
                 className="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white"
-                onClick={() => handlePrint(true)}
-                title="Cetak semua data"
+                onClick={handlePrintAll}
               >
                 Print (Semua)
               </button>
