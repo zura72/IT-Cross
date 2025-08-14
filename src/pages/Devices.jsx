@@ -145,7 +145,7 @@ export default function Devices() {
     });
   }
 
-  function renderPhoto(fields) {
+  function getPhotoUrl(fields) {
     let url = "";
     try {
       let obj = fields?.[PHOTO_FIELD_INTERNAL_NAME];
@@ -156,6 +156,11 @@ export default function Devices() {
     } catch {
       url = "";
     }
+    return url;
+  }
+
+  function renderPhoto(fields) {
+    const url = getPhotoUrl(fields);
     return (
       <div className="w-14 h-14 bg-gray-200 flex items-center justify-center overflow-hidden rounded shadow">
         {url ? (
@@ -171,6 +176,106 @@ export default function Devices() {
     const id = fields?.CurrentOwnerLookupId;
     if (!id) return "";
     return userMap[id] || id;
+  }
+
+  /** ====== PRINT helpers ====== */
+  const esc = (v) =>
+    String(v ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+
+  function buildPrintHTML(rows) {
+    const printedAt = new Date().toLocaleString();
+    const head = `
+      <meta charset="utf-8" />
+      <title>Devices — Print</title>
+      <style>
+        @page { size: A4 landscape; margin: 12mm; }
+        body { font: 12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: #111; }
+        h1 { font-size: 18px; margin: 0 0 6px; }
+        .meta { font-size: 11px; margin: 0 0 12px; color:#555; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 6px 8px; vertical-align: top; }
+        th { background: #f0f6ff; text-align: left; }
+        td img { height: 48px; width: 64px; object-fit: cover; border-radius: 6px; }
+        .center { text-align: center; }
+      </style>
+    `;
+
+    const headerCells = FIELDS.map((f) => `<th>${esc(f.name)}</th>`).join("");
+
+    const rowsHtml = rows
+      .map((item) => {
+        const f = item.fields || {};
+        const foto = getPhotoUrl(f)
+          ? `<img src="${getPhotoUrl(f)}" alt="foto" />`
+          : "—";
+        const antivirus = f.AntiVirus ? "✔" : "";
+        const pengguna = f.CurrentOwnerLookupId
+          ? esc(userMap[f.CurrentOwnerLookupId] || f.CurrentOwnerLookupId)
+          : "";
+
+        const cells = [
+          foto,
+          esc(f.Title),
+          esc(f.Status),
+          esc(f.Model),
+          esc(f.Manufacturer),
+          esc(f.SerialNumber),
+          pengguna,
+          esc(f.Divisi),
+          antivirus,
+        ]
+          .map((v, idx) =>
+            idx === 0 ? `<td class="center">${v}</td>` : `<td>${v}</td>`
+          )
+          .join("");
+
+        return `<tr>${cells}</tr>`;
+      })
+      .join("");
+
+    return `
+      <!doctype html>
+      <html>
+        <head>${head}</head>
+        <body>
+          <h1>Devices</h1>
+          <div class="meta">
+            Total baris: ${rows.length} &nbsp;|&nbsp; Dicetak: ${esc(printedAt)}
+          </div>
+          <table>
+            <thead><tr>${headerCells}</tr></thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+          <script>
+            window.onload = function() {
+              window.focus();
+              window.print();
+              setTimeout(() => window.close(), 300);
+            };
+          </script>
+        </body>
+      </html>
+    `;
+  }
+
+  function handlePrint(all = false) {
+    const rows = all ? data : getFiltered();
+    if (!rows || rows.length === 0) {
+      alert("Tidak ada data untuk dicetak.");
+      return;
+    }
+    const html = buildPrintHTML(rows);
+    const w = window.open("", "_blank", "noopener,noreferrer");
+    if (!w) {
+      alert("Popup diblokir. Izinkan pop-up untuk mencetak.");
+      return;
+    }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
   }
 
   /** ====== CRUD handlers ====== */
@@ -344,8 +449,7 @@ export default function Devices() {
           const j = JSON.parse(t);
           console.log("Graph error detail:", j);
           msg = j?.error?.message || msg;
-        } catch {
-        }
+        } catch {}
         return msg;
       };
 
@@ -424,7 +528,7 @@ export default function Devices() {
     removePhoto();
   }
 
-  /** ====== UI ====== */
+    /** ====== UI ====== */
   return (
     <div className="relative min-h-screen flex flex-col items-center py-8 bg-gray-50 dark:bg-gray-900">
       <div
@@ -492,15 +596,16 @@ export default function Devices() {
                     </button>
                   </div>
                 ) : modal.data?.[PHOTO_FIELD_INTERNAL_NAME] ? (
-                  <OldPhotoPreview meta={modal.data[PHOTO_FIELD_INTERNAL_NAME]} fields={modal.data} />
+                  <OldPhotoPreview
+                    meta={modal.data[PHOTO_FIELD_INTERNAL_NAME]}
+                    fields={modal.data}
+                  />
                 ) : null}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Title
-                  </label>
+                  <label className="block text-sm font-semibold mb-1">Title</label>
                   <input
                     name="Title"
                     defaultValue={modal.data?.Title || ""}
@@ -511,9 +616,7 @@ export default function Devices() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Tipe
-                  </label>
+                  <label className="block text-sm font-semibold mb-1">Tipe</label>
                   <input
                     name="Model"
                     defaultValue={modal.data?.Model || ""}
@@ -523,9 +626,7 @@ export default function Devices() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Status
-                  </label>
+                  <label className="block text-sm font-semibold mb-1">Status</label>
                   <select
                     name="Status"
                     defaultValue={modal.data?.Status || ""}
@@ -546,9 +647,7 @@ export default function Devices() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Pabrikan
-                  </label>
+                  <label className="block text-sm font-semibold mb-1">Pabrikan</label>
                   <select
                     name="Manufacturer"
                     defaultValue={modal.data?.Manufacturer || ""}
@@ -560,20 +659,16 @@ export default function Devices() {
                         {opt}
                       </option>
                     ))}
-                    {["DELL", "HP", "LENOVO", "ASUS", "ACER", "SAMSUNG"].map(
-                      (opt) => (
-                        <option key={`m-${opt}`} value={opt}>
-                          {opt}
-                        </option>
-                      )
-                    )}
+                    {["DELL", "HP", "LENOVO", "ASUS", "ACER", "SAMSUNG"].map((opt) => (
+                      <option key={`m-${opt}`} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Nomor Serial
-                  </label>
+                  <label className="block text-sm font-semibold mb-1">Nomor Serial</label>
                   <input
                     name="SerialNumber"
                     defaultValue={modal.data?.SerialNumber || ""}
@@ -582,9 +677,7 @@ export default function Devices() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Pengguna
-                  </label>
+                  <label className="block text-sm font-semibold mb-1">Pengguna</label>
                   <input
                     name="CurrentOwnerLookupId"
                     defaultValue={
@@ -598,9 +691,7 @@ export default function Devices() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Departemen
-                  </label>
+                  <label className="block text-sm font-semibold mb-1">Departemen</label>
                   <select
                     name="Divisi"
                     defaultValue={modal.data?.Divisi || ""}
@@ -656,15 +747,31 @@ export default function Devices() {
             <h2 className="text-3xl font-bold mb-2 text-[#215ba6] dark:text-white">
               Devices
             </h2>
+
+            {/* Tombol Print */}
+            <div className="flex gap-2">
+              <button
+                className="px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
+                onClick={() => handlePrint(false)}
+                title="Cetak data sesuai filter aktif"
+              >
+                Print (Filter)
+              </button>
+              <button
+                className="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white"
+                onClick={() => handlePrint(true)}
+                title="Cetak semua data"
+              >
+                Print (Semua)
+              </button>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center mb-6 gap-3">
             <select
               className="px-3 py-2 rounded border border-gray-300 dark:bg-gray-700 dark:text-white"
               value={filter.Status}
-              onChange={(e) =>
-                setFilter((f) => ({ ...f, Status: e.target.value }))
-              }
+              onChange={(e) => setFilter((f) => ({ ...f, Status: e.target.value }))}
             >
               <option value="">All Status</option>
               {getUniqueOptions("Status").map((opt) => (
@@ -676,9 +783,7 @@ export default function Devices() {
             <select
               className="px-3 py-2 rounded border border-gray-300 dark:bg-gray-700 dark:text-white"
               value={filter.Model}
-              onChange={(e) =>
-                setFilter((f) => ({ ...f, Model: e.target.value }))
-              }
+              onChange={(e) => setFilter((f) => ({ ...f, Model: e.target.value }))}
             >
               <option value="">All Tipe</option>
               {getUniqueOptions("Model").map((opt) => (
@@ -690,9 +795,7 @@ export default function Devices() {
             <select
               className="px-3 py-2 rounded border border-gray-300 dark:bg-gray-700 dark:text-white"
               value={filter.Divisi}
-              onChange={(e) =>
-                setFilter((f) => ({ ...f, Divisi: e.target.value }))
-              }
+              onChange={(e) => setFilter((f) => ({ ...f, Divisi: e.target.value }))}
             >
               <option value="">All Departemen</option>
               {getUniqueOptions("Divisi").map((opt) => (
@@ -785,11 +888,7 @@ export default function Devices() {
                         {item.fields?.Divisi ?? ""}
                       </td>
                       <td className="px-5 py-3 text-gray-800 dark:text-gray-100">
-                        {item.fields?.AntiVirus ? (
-                          <span className="text-xl">✔️</span>
-                        ) : (
-                          ""
-                        )}
+                        {item.fields?.AntiVirus ? <span className="text-xl">✔️</span> : ""}
                       </td>
                       <td className="px-5 py-3">
                         {selectedRow && selectedRow.id === item.id ? (
@@ -844,7 +943,6 @@ function OldPhotoPreview({ meta, fields }) {
         </div>
       );
     }
-  } catch {
-  }
+  } catch {}
   return null;
 }
