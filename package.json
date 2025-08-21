@@ -1,39 +1,15 @@
 {
-  "name": "stok-inventory",
-  "version": "0.1.0",
+  "name": "wki-monorepo",
   "private": true,
-  "dependencies": {
-    "@azure/msal-browser": "^4.21.0",
-    "@azure/msal-react": "^3.0.19",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-icons": "^5.5.0",
-    "react-router-dom": "^6.30.1",
-    "react-scripts": "5.0.1",
-    "recharts": "^3.1.0"
+  "workspaces": ["server", "stok-inventory", "web"],
+  "scripts": {
+    "dev": "concurrently -k -p \"[{name}]\" -n SVR,ADM,WEB -c green,magenta,cyan \"npm:dev:server\" \"npm:dev:stok\" \"npm:dev:web\"",
+    "dev:server": "npm run dev -w server",
+    "dev:stok": "npm run dev -w stok-inventory",
+    "dev:web": "npm run dev -w web",
+    "build": "npm run build -w stok-inventory && npm run build -w web"
   },
   "devDependencies": {
-    "autoprefixer": "^10.4.19",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "postcss": "^8.4.38",
-    "tailwindcss": "^3.4.4"
-  },
-  "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+    "concurrently": "8.2.2"
   }
 }
