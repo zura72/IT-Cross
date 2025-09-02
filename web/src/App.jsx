@@ -13,6 +13,7 @@ function Bubble({ side = "bot", text, imgSrc }) {
     </div>
   );
 }
+
 function Typing() {
   return (
     <div className="row bot">
@@ -37,7 +38,6 @@ export default function App() {
 
   const divisions = ["IT", "HR", "Finance", "Ops"];
   const scroller = useRef(null);
-  const fileInput = useRef(null);
 
   function scrollToBottom() {
     requestAnimationFrame(() => {
@@ -46,8 +46,8 @@ export default function App() {
   }
   useEffect(() => { scrollToBottom(); }, [messages, typing]);
 
-  function botSay(html, delayBase = 250) {
-    const d = Math.min(1200, delayBase + (html?.length || 10) * 16);
+  function botSay(html, delayBase = 350) {
+    const d = Math.min(1300, delayBase + (html?.length || 10) * 18);
     setTyping(true);
     setTimeout(() => {
       setMessages((m) => [...m, { side: "bot", text: html }]);
@@ -55,18 +55,17 @@ export default function App() {
     }, d);
   }
 
-  // greet
   useEffect(() => {
     if (step !== "greet") return;
     setMessages([{ side: "bot", text: "Hai! Aku siap membantumu. 😊" }]);
     setTimeout(() => {
       botSay("Boleh kenalan? <b>Siapa namamu?</b>");
       setStep("askName");
-    }, 200);
+    }, 250);
   }, [step]);
 
-  function pushUser(text, extra = {}) {
-    setMessages((m) => [...m, { side: "user", text, ...extra }]);
+  function pushUser(text, opts = {}) {
+    setMessages((m) => [...m, { side: "user", text, ...opts }]);
   }
 
   async function sendFromInput() {
@@ -82,7 +81,7 @@ export default function App() {
       setTimeout(() => {
         botSay("Divisi mana yang terkait?");
         setStep("askDivision");
-      }, 400);
+      }, 500);
     } else if (step === "askDesc") {
       pushUser(value);
       setDesc(value);
@@ -109,11 +108,10 @@ export default function App() {
 
   function goConfirm() {
     const summary =
-      `Mohon cek ya:<br/>` +
-      `• <b>Nama:</b> ${name}<br/>` +
-      `• <b>Divisi:</b> ${division}<br/>` +
-      `• <b>Keluhan:</b> ${desc}<br/>` +
-      `• <b>Foto:</b> ${photo ? "terlampir" : "—"}`;
+      `Mohon cek ya:<br/>• <b>Nama:</b> ${name}` +
+      `<br/>• <b>Divisi:</b> ${division}` +
+      `<br/>• <b>Keluhan:</b> ${desc}` +
+      `<br/>• <b>Foto:</b> ${photo ? "terlampir" : "—"}`;
     botSay(summary);
     setStep("confirm");
   }
@@ -122,7 +120,8 @@ export default function App() {
     try {
       setStep("sending");
       setError("");
-      const res = await createTicket({ name, division, desc, photo });
+      const payload = { name, division, desc, photo };
+      const res = await createTicket(payload);
       botSay(`Ticket <b>${res.row?.id || res.ticketId}</b> berhasil dibuat. Admin akan segera menindaklanjuti. 🙌`);
       setStep("done");
     } catch {
@@ -144,14 +143,7 @@ export default function App() {
     if (step === "askPhoto") {
       return (
         <div className="photo-picker">
-          <input
-            ref={fileInput}
-            type="file"
-            accept="image/*"
-            onChange={(e) => handlePhotoChange(e.target.files?.[0])}
-            style={{ display: "none" }}
-          />
-          <button className="ghost" onClick={() => fileInput.current?.click()}>Pilih Foto</button>
+          <input type="file" accept="image/*" onChange={(e) => handlePhotoChange(e.target.files?.[0])} />
           <div className="spacer" />
           <button className="ghost" onClick={goConfirm}>Lewati</button>
           <button className="primary" onClick={goConfirm}>Lanjut</button>
@@ -175,7 +167,6 @@ export default function App() {
           onChange={(e) => setInput(e.target.value)}
           placeholder={step === "askName" ? "Ketik namamu…" : "Tulis keluhanmu…"}
           onKeyDown={(e) => (e.key === "Enter" ? sendFromInput() : null)}
-          autoFocus
         />
         <button className="primary" onClick={sendFromInput}>Kirim</button>
       </div>
@@ -185,13 +176,6 @@ export default function App() {
   return (
     <div className="chat-shell full">
       <main ref={scroller} className="chat-area">
-        {/* Brand bar */}
-        <div className="brand">
-          <div className="brand-dot" />
-          <div className="brand-title">Resepsionis AI</div>
-          <div className="brand-right">Seperti WhatsApp • demo lokal</div>
-        </div>
-
         {messages.map((m, i) => (
           <Bubble key={i} side={m.side} text={m.text} imgSrc={m.imgSrc} />
         ))}
@@ -200,7 +184,9 @@ export default function App() {
 
       {error && <div className="error">{error}</div>}
 
-      <footer className="chat-footer">{composer}</footer>
+      <footer className="chat-footer">
+        {composer}
+      </footer>
     </div>
   );
 }

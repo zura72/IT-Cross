@@ -1,15 +1,21 @@
 {
   "name": "wki-monorepo",
   "private": true,
-  "workspaces": ["server", "stok-inventory", "web"],
+  "workspaces": [
+    "server",
+    "stok-inventory",
+    "web"
+  ],
   "scripts": {
     "dev": "concurrently -k -p \"[{name}]\" -n SVR,ADM,WEB -c green,magenta,cyan \"npm:dev:server\" \"npm:dev:stok\" \"npm:dev:web\"",
     "dev:server": "npm run dev -w server",
-    "dev:stok": "npm run dev -w stok-inventory",
-    "dev:web": "npm run dev -w web",
+    "dev:stok": "wait-on http-get://localhost:4000/api/health && npm run dev -w stok-inventory",
+    "dev:web": "wait-on http-get://localhost:4000/api/health && npm run dev -w web",
     "build": "npm run build -w stok-inventory && npm run build -w web"
   },
   "devDependencies": {
-    "concurrently": "8.2.2"
+    "concurrently": "^8.2.2",
+    "http-proxy-middleware": "^3.0.5",
+    "wait-on": "7.2.0"
   }
 }

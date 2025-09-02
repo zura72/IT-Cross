@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1756183679432,
+    "Created": "2025-08-26T04:47:59.432Z",
+    "RequesterName": "Raden Paramudita",
+    "Division": "Business Development",
+    "Prioritas": "Normal",
+    "Description": "pc error lagi",
+    "PhotoUrl": "/uploads/photo_1756183679426.jpg",
+    "Status": "Belum"
+  },
+  {
+    "id": 1756183565364,
+    "Created": "2025-08-26T04:46:05.364Z",
+    "RequesterName": "Raden Paramudita",
+    "Division": "IT & System",
+    "Prioritas": "Normal",
+    "Description": "pc error blue screen",
+    "PhotoUrl": "/uploads/photo_1756183565362.jpg",
+    "Status": "Belum"
+  },
+  {
+    "id": 1756182781911,
+    "Created": "2025-08-26T04:33:01.911Z",
+    "RequesterName": "Raden Paramudita",
+    "Division": "IT & System",
+    "Prioritas": "Normal",
+    "Description": "batre laptopku rusak",
+    "PhotoUrl": "/uploads/photo_1756182781903.jpg",
+    "Status": "Belum"
+  },
+  {
+    "id": 1756107026417,
+    "Created": "2025-08-25T07:30:26.417Z",
+    "RequesterName": "Raden Paramudita",
+    "Division": "Umum",
+    "Prioritas": "Normal",
+    "Description": "laptopku mati",
+    "PhotoUrl": "/uploads/photo_1756107026412.jpg",
+    "Status": "Belum"
+  }
+]
