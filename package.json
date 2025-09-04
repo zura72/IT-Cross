@@ -3,17 +3,17 @@
   "private": true,
   "workspaces": [
     "server",
-    "stok-inventory",
+    "stok",
     "web"
   ],
   "scripts": {
     "dev": "concurrently -k -p \"[{name}]\" -n SVR,ADM,WEB -c green,magenta,cyan \"npm run dev:server\" \"npm run dev:stok\" \"npm run dev:web\"",
     "dev:server": "npm run dev -w server",
-    "dev:stok": "wait-on http-get://localhost:4000/api/health && npm run dev -w stok-inventory",
+    "dev:stok": "wait-on http-get://localhost:4000/api/health && npm run dev -w stok",
     "dev:web": "wait-on http-get://localhost:4000/api/health && npm run dev -w web",
-    "build": "npm run build -w stok-inventory && npm run build -w web",
+    "build": "npm run build -w server && npm run build -w stok && npm run build -w web",
     "build:server": "npm run build -w server",
-    "build:stok": "npm run build -w stok-inventory",
+    "build:stok": "npm run build -w stok",
     "build:web": "npm run build -w web"
   },
   "devDependencies": {
