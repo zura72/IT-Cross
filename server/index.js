@@ -1,4 +1,3 @@
-// server/index.js
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -14,13 +13,11 @@ import { fileURLToPath } from "url";
 
 dotenv.config();
 
-/* ====== setup dasar ====== */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// BASE publik untuk bikin URL absolut
 const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || `http://localhost:${PORT}`;
 function toAbs(u = "") {
   if (!u) return "";
@@ -28,11 +25,9 @@ function toAbs(u = "") {
   return `${PUBLIC_BASE_URL}${u.startsWith("/") ? u : `/${u}`}`;
 }
 
-/* ====== folder uploads ====== */
 const UPLOAD_DIR = path.join(__dirname, "uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
-/* ====== multer (upload single "photo") ====== */
 const upload = multer({
   storage: multer.diskStorage({
     destination: (_, __, cb) => cb(null, UPLOAD_DIR),
@@ -42,17 +37,15 @@ const upload = multer({
       cb(null, `${ts}-${safe}`);
     },
   }),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
 
-/* ====== middlewares ====== */
 app.use(helmet());
 app.use(cors());
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 app.use(morgan("dev"));
 
-/* ====== static uploads ====== */
 app.use(
   "/uploads",
   express.static(UPLOAD_DIR, {
@@ -63,7 +56,6 @@ app.use(
   })
 );
 
-/* ====== in-memory DB + persist ke file ====== */
 const DB_FILE = path.join(UPLOAD_DIR, "tickets.json");
 let DB = { seq: 1, items: [] };
 
@@ -85,15 +77,9 @@ function loadDB() {
 function saveDB() {
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(DB, null, 2), "utf8");
-  } catch {
-    /* ignore */
-  }
+  } catch {}
 }
 loadDB();
-if (typeof DB.seq !== "number" || !Array.isArray(DB.items)) {
-  DB = { seq: 1, items: [] };
-  saveDB();
-}
 
 function nextTicketNo() {
   const n = DB.seq++;
@@ -104,7 +90,6 @@ function autoPriority(division = "") {
   return String(division).trim().toLowerCase() === "direksi" ? "Urgent" : "Normal";
 }
 
-/* ===== helper email ===== */
 async function sendEmail({ to, subject, html }) {
   const host = process.env.SMTP_HOST;
   const user = process.env.SMTP_USER;
@@ -124,7 +109,6 @@ async function sendEmail({ to, subject, html }) {
   return { ok: true };
 }
 
-/* ===== health & config ===== */
 app.get("/api/health", (_req, res) => res.json({ ok: true, port: PORT, ts: Date.now() }));
 app.get("/api/config", (_req, res) => {
   const envAdmins = (process.env.ADMIN_EMAILS || "adminapp@waskitainfrastruktur.co.id")
@@ -135,9 +119,8 @@ app.get("/api/config", (_req, res) => {
   res.json({ ok: true, adminEmails: envAdmins });
 });
 
-/* ===== Tickets ===== */
 app.get("/api/tickets", (req, res) => {
-  const status = (req.query.status || "").toLowerCase(); // "" | "belum" | "selesai" | "ditolak"
+  const status = (req.query.status || "").toLowerCase();
   const srcItems = Array.isArray(DB.items) ? DB.items : [];
   let rows = srcItems.slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   if (status) rows = rows.filter((r) => (r.status || "").toLowerCase() === status);
@@ -166,7 +149,6 @@ app.get("/api/tickets", (req, res) => {
   res.json({ ok: true, rows: payload });
 });
 
-// Buat tiket (dipanggil ChatHost)
 app.post("/api/tickets", upload.single("photo"), (req, res) => {
   try {
     const { name = "User", division = "Umum" } = req.body;
@@ -185,10 +167,10 @@ app.post("/api/tickets", upload.single("photo"), (req, res) => {
       email: req.body.email || "",
       division,
       description,
-      status: "Belum",        // Belum | Selesai | Ditolak
+      status: "Belum",
       priority,
       createdAt: Date.now(),
-      photoUrl: relPhoto,     // relatif
+      photoUrl: relPhoto,
       donePhotoUrl: "",
       notes: "",
       operator: "",
@@ -204,7 +186,6 @@ app.post("/api/tickets", upload.single("photo"), (req, res) => {
   }
 });
 
-// Konfirmasi tiket selesai
 app.post("/api/tickets/:id/resolve", upload.single("photo"), (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -224,7 +205,6 @@ app.post("/api/tickets/:id/resolve", upload.single("photo"), (req, res) => {
   }
 });
 
-// >>> Tolak tiket (Decline)
 app.post("/api/tickets/:id/decline", async (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -240,7 +220,6 @@ app.post("/api/tickets/:id/decline", async (req, res) => {
     t.finishedAt = Date.now();
     saveDB();
 
-    // Kirim email ke user (jika ada email & SMTP di-set)
     const to = t.email || "";
     if (to) {
       const subject = `[HELPDESK] Ticket ${t.ticketNo} Ditolak`;
@@ -270,7 +249,6 @@ app.post("/api/tickets/:id/decline", async (req, res) => {
   }
 });
 
-// >>> Hapus tiket (Delete)
 app.delete("/api/tickets/:id", (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -287,7 +265,6 @@ app.delete("/api/tickets/:id", (req, res) => {
   }
 });
 
-/* ====== Proxy gambar (opsional) ====== */
 app.get("/api/uploads/proxy", async (req, res) => {
   try {
     const src = req.query.src || "";
@@ -307,7 +284,6 @@ app.get("/api/uploads/proxy", async (req, res) => {
   }
 });
 
-/* ====== Email notifikasi manual endpoint (tetap ada) ====== */
 const mailLimiter = rateLimit({ windowMs: 10_000, max: 5 });
 app.post("/api/notify/email", mailLimiter, async (req, res) => {
   const { to = [], subject = "Ticket", html = "" } = req.body || {};
@@ -319,7 +295,6 @@ app.post("/api/notify/email", mailLimiter, async (req, res) => {
   }
 });
 
-/* ====== start ====== */
 app.listen(PORT, () => {
   console.log(`WKI server running on ${PUBLIC_BASE_URL}`);
 });
