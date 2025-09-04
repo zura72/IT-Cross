@@ -74,6 +74,7 @@ function loadDB() {
     DB = { seq: 1, items: [] };
   }
 }
+
 function saveDB() {
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(DB, null, 2), "utf8");
