@@ -1,0 +1,8 @@
+{
+  "apiBase": "/api",
+  "msal": {
+    "clientId": "YOUR-AZURE-APP-CLIENT-ID",
+    "authority": "https://login.microsoftonline.com/YOUR_TENANT_ID",
+    "redirectUri": "http://localhost:8080"
+  }
+}

@@ -2,15 +2,41 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useMsal } from "@azure/msal-react";
 
-/* ===== ENV (CRA/Webpack) ===== */
-const API_BASE = (process.env.REACT_APP_API_BASE || "").replace(/\/+$/, "");
+/* ===== ENV (aman untuk Vite & CRA, tanpa literal import.meta) ===== */
+function readEnvSafe(viteKey, craKey) {
+  let viteEnv = {};
+  try {
+    // Hindari parser error: akses import.meta.env via eval
+    // eslint-disable-next-line no-eval
+    viteEnv = eval("import.meta && import.meta.env") || {};
+  } catch (_) {
+    viteEnv = {};
+  }
+  const craEnv = (typeof process !== "undefined" && process.env) || {};
+  return viteEnv[viteKey] ?? craEnv[craKey] ?? "";
+}
+
+const API_BASE_RAW = (readEnvSafe("VITE_API_BASE", "REACT_APP_API_BASE") || "/api").trim();
+/** Hilangkan trailing slash agar konsisten */
+const API_BASE = API_BASE_RAW.replace(/\/+$/, "");
+
+/* Credentials mode:
+   - Relatif (/api) → same-origin (via proxy Vite/CRA, aman dari CORS)
+   - Absolut (http://...) → include (butuh CORS server: Allow-Credentials true + Origin spesifik) */
+const USE_INCLUDE = /^https?:\/\//i.test(API_BASE);
+const CREDENTIALS_MODE = USE_INCLUDE ? "include" : "same-origin";
 
 /* ===== Fetch helpers ===== */
+function fullUrl(path) {
+  return `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
 async function apiGet(path) {
-  const url = `${API_BASE}${path}`;
-  const r = await fetch(url, { credentials: "include" }).catch((e) => {
+  const url = fullUrl(path);
+  const r = await fetch(url, { credentials: CREDENTIALS_MODE }).catch((e) => {
     throw new Error("Network error: " + e.message);
   });
+
   const ct = r.headers.get("content-type") || "";
   if (!ct.includes("application/json")) {
     const text = await r.text().catch(() => "");
@@ -18,28 +44,33 @@ async function apiGet(path) {
     throw new Error(`Server mengirim non-JSON (${r.status}): ${head}`);
   }
   const j = await r.json();
-  if (!r.ok || j?.ok === false) {
-    throw new Error(j?.error || `HTTP ${r.status}`);
-  }
-  return j;
-}
-async function apiPost(path, body) {
-  const url = `${API_BASE}${path}`;
-  const r = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body || {}),
-    credentials: "include",
-  }).catch((e) => {
-    throw new Error("Network error: " + e.message);
-  });
-  const j = await r.json().catch(() => ({}));
   if (!r.ok || j?.ok === false) throw new Error(j?.error || `HTTP ${r.status}`);
   return j;
 }
+
+async function apiPost(path, body) {
+  const url = fullUrl(path);
+  const r = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: CREDENTIALS_MODE,
+    body: JSON.stringify(body || {}),
+  }).catch((e) => {
+    throw new Error("Network error: " + e.message);
+  });
+  const ct = r.headers.get("content-type") || "";
+  const j = ct.includes("application/json") ? await r.json() : {};
+  if (!r.ok || j?.ok === false) throw new Error(j?.error || `HTTP ${r.status}`);
+  return j;
+}
+
 async function apiPostForm(path, formData) {
-  const url = `${API_BASE}${path}`;
-  const r = await fetch(url, { method: "POST", body: formData, credentials: "include" }).catch((e) => {
+  const url = fullUrl(path);
+  const r = await fetch(url, {
+    method: "POST",
+    body: formData,
+    credentials: CREDENTIALS_MODE,
+  }).catch((e) => {
     throw new Error("Network error: " + e.message);
   });
   const ct = r.headers.get("content-type") || "";
@@ -47,10 +78,14 @@ async function apiPostForm(path, formData) {
   if (!r.ok || j?.ok === false) throw new Error(j?.error || `HTTP ${r.status}`);
   return j;
 }
+
 async function apiDelete(path) {
-  const url = `${API_BASE}${path}`;
-  const r = await fetch(url, { method: "DELETE", credentials: "include" });
-  const j = await r.json().catch(() => ({}));
+  const url = fullUrl(path);
+  const r = await fetch(url, { method: "DELETE", credentials: CREDENTIALS_MODE }).catch((e) => {
+    throw new Error("Network error: " + e.message);
+  });
+  const ct = r.headers.get("content-type") || "";
+  const j = ct.includes("application/json") ? await r.json() : { ok: r.ok };
   if (!r.ok || j?.ok === false) throw new Error(j?.error || `HTTP ${r.status}`);
   return j;
 }
@@ -192,7 +227,7 @@ export default function TicketEntry() {
           <p className="text-sm text-gray-500">
             <i>Sumber data:</i>{" "}
             <code className="bg-gray-100 px-1 rounded">
-              {(API_BASE || "") + "/api/tickets?status=Belum"}
+              {fullUrl("/api/tickets?status=Belum")}
             </code>
           </p>
         </div>
