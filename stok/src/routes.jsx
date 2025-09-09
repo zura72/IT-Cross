@@ -1,4 +1,3 @@
-// src/AppRoutes.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { useMsal } from "@azure/msal-react";
@@ -24,6 +23,15 @@ import {
   FALLBACK_ADMIN_EMAIL,
 } from "./constants/admin";
 
+/* ============= dev-only logger ============= */
+const isDev =
+  (typeof import.meta !== "undefined" && import.meta.env?.MODE === "development") ||
+  process.env.NODE_ENV === "development";
+const dev = {
+  log: (...a) => isDev && console.log(...a),
+  warn: (...a) => isDev && console.warn(...a),
+};
+
 /* ============= Admin Gate Hook ============= */
 function useAdminGate() {
   const { accounts } = useMsal();
@@ -43,7 +51,6 @@ function useAdminGate() {
   }, []);
 
   const ready = adminSet !== null;
-  // Bypass ekstra: email fallback dianggap admin meski cache aneh
   const isAdmin =
     ready &&
     !!email &&
@@ -54,10 +61,10 @@ function useAdminGate() {
 
 /* ============= Guards & Layout ============= */
 function RequireAdmin({ children }) {
-  const { ready, isAdmin, email } = useAdminGate();
+  const { ready, isAdmin /*, email*/ } = useAdminGate();
   if (!ready) return <div className="p-6">Loading…</div>;
   if (!isAdmin) {
-    console.warn("[RequireAdmin] Bukan admin:", email);
+    // jangan spam console, langsung redirect saja
     return <Navigate to="/chat" replace />;
   }
   return children;
@@ -95,9 +102,8 @@ function LandingRouter() {
   useEffect(() => {
     if (!ready) return;
     const target = isAdmin ? "/dashboard" : "/chat";
-    console.log("[LandingRouter] email:", email, "→", target);
-    // gunakan replace agar tidak ada history back ke "/"
-    nav(target, { replace: true });
+    dev.log("[LandingRouter] email:", email, "→", target);
+    nav(target, { replace: true }); // gunakan replace agar tidak ada history back ke "/"
   }, [ready, isAdmin, nav, email]);
 
   return <div className="p-6">Mengarahkan…</div>;
