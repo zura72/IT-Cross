@@ -112,6 +112,24 @@ export default function TicketEntry() {
   const [activeResolve, setActiveResolve] = useState(null);
   const [activeDecline, setActiveDecline] = useState(null);
   const [activeDelete, setActiveDelete] = useState(null);
+  
+  // Dark mode state
+  const [darkMode, setDarkMode] = useState(false);
+
+  // Check for dark mode preference
+  useEffect(() => {
+    const isDark = localStorage.getItem('darkMode') === 'true' || 
+                  window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setDarkMode(isDark);
+    document.documentElement.classList.toggle('dark', isDark);
+  }, []);
+
+  const toggleDarkMode = () => {
+    const newDarkMode = !darkMode;
+    setDarkMode(newDarkMode);
+    localStorage.setItem('darkMode', newDarkMode);
+    document.documentElement.classList.toggle('dark', newDarkMode);
+  };
 
   /* ---------- Fetch ---------- */
   const load = useCallback(async () => {
@@ -217,16 +235,26 @@ export default function TicketEntry() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${darkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}>
+      {/* Dark mode toggle */}
+      <div className="flex justify-end mb-2">
+        <button 
+          onClick={toggleDarkMode}
+          className="px-3 py-1 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white"
+        >
+          {darkMode ? '☀️ Light Mode' : '🌙 Dark Mode'}
+        </button>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold mb-1 text-[#215ba6] dark:text-white">
-            Ticket Entry <span className="text-gray-500">(Belum)</span>
+            Ticket Entry <span className="text-gray-500 dark:text-gray-300">(Belum)</span>
           </h2>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             <i>Sumber data:</i>{" "}
-            <code className="bg-gray-100 px-1 rounded">
+            <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">
               {fullUrl("/api/tickets?status=Belum")}
             </code>
           </p>
@@ -236,12 +264,12 @@ export default function TicketEntry() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Cari: no tiket, user, divisi, keluhan…"
-            className="px-3 py-2 rounded border border-gray-300 dark:bg-gray-700 dark:text-white w-64"
+            className="px-3 py-2 rounded border border-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 w-64"
           />
           <button onClick={load} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded">
             {loading ? "Loading…" : "Reload"}
           </button>
-          <button onClick={handlePrint} className="px-4 py-2 rounded border border-gray-300 hover:bg-gray-100">
+          <button onClick={handlePrint} className="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white">
             Print
           </button>
         </div>
@@ -252,14 +280,14 @@ export default function TicketEntry() {
       {okMsg && <Banner type="ok"    onClose={() => setOkMsg("")}>{okMsg}</Banner>}
 
       {/* Counter */}
-      <div className="text-sm text-gray-600">Total: {filtered.length}{q ? ` (dari ${rows.length})` : ""}</div>
+      <div className="text-sm text-gray-600 dark:text-gray-400">Total: {filtered.length}{q ? ` (dari ${rows.length})` : ""}</div>
 
       {/* Tabel */}
       <div className="bg-white/95 dark:bg-gray-800/90 rounded-2xl p-6 shadow-xl">
         <div className="overflow-x-auto rounded-xl shadow">
           <table className="min-w-full w-full text-base table-auto">
             <thead>
-              <tr className="bg-blue-50 dark:bg-gray-800 text-[#215ba6] dark:text-white text-lg">
+              <tr className="bg-blue-50 dark:bg-gray-700 text-[#215ba6] dark:text-white text-lg">
                 <Th className="w-28">No. Ticket</Th>
                 <Th className="w-44">Waktu</Th>
                 <Th className="w-56">User Requestor</Th>
@@ -285,6 +313,7 @@ export default function TicketEntry() {
                     onOpenDecline={() => setActiveDecline(r)}
                     onOpenDelete={() => setActiveDelete(r)}
                     zebra={i % 2 === 1}
+                    darkMode={darkMode}
                   />
                 ))
               )}
@@ -293,9 +322,9 @@ export default function TicketEntry() {
         </div>
       </div>
 
-      {activeResolve && <ResolveModal row={activeResolve} onClose={() => setActiveResolve(null)} onSubmit={handleResolve} />}
-      {activeDecline && <DeclineModal row={activeDecline} onClose={() => setActiveDecline(null)} onSubmit={handleDecline} />}
-      {activeDelete && <DeleteConfirm row={activeDelete} onClose={() => setActiveDelete(null)} onSubmit={handleDelete} />}
+      {activeResolve && <ResolveModal row={activeResolve} onClose={() => setActiveResolve(null)} onSubmit={handleResolve} darkMode={darkMode} />}
+      {activeDecline && <DeclineModal row={activeDecline} onClose={() => setActiveDecline(null)} onSubmit={handleDecline} darkMode={darkMode} />}
+      {activeDelete && <DeleteConfirm row={activeDelete} onClose={() => setActiveDelete(null)} onSubmit={handleDelete} darkMode={darkMode} />}
     </div>
   );
 }
@@ -308,9 +337,9 @@ function Td({ children, className = "" }) {
   return <td className={`px-5 py-3 align-top ${className}`}>{children}</td>;
 }
 
-function Row({ r, onOpenResolve, onOpenDecline, onOpenDelete, zebra }) {
+function Row({ r, onOpenResolve, onOpenDecline, onOpenDelete, zebra, darkMode }) {
   return (
-    <tr className={`${zebra ? "bg-blue-50/60 dark:bg-gray-800/60" : ""} hover:bg-gray-50`}>
+    <tr className={`${zebra ? "bg-blue-50/60 dark:bg-gray-800/60" : ""} hover:bg-gray-50 dark:hover:bg-gray-700`}>
       <Td className="text-gray-800 dark:text-gray-100 font-medium">{r.ticketNo || "-"}</Td>
       <Td className="text-gray-800 dark:text-gray-100">{r.waktu}</Td>
 
@@ -319,14 +348,14 @@ function Row({ r, onOpenResolve, onOpenDecline, onOpenDelete, zebra }) {
           <Avatar name={r.userRequestor} />
           <div className="leading-tight">
             <div className="font-medium text-gray-900 dark:text-gray-100">{r.userRequestor || "-"}</div>
-            <div className="text-xs text-gray-500">{r.email || ""}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">{r.email || ""}</div>
           </div>
         </div>
       </Td>
 
-      <Td><Chip>{r.pelaksana || "-"}</Chip></Td>
-      <Td><Chip>{r.divisi || "-"}</Chip></Td>
-      <Td><PriorityChip value={r.prioritas} /></Td>
+      <Td><Chip darkMode={darkMode}>{r.pelaksana || "-"}</Chip></Td>
+      <Td><Chip darkMode={darkMode}>{r.divisi || "-"}</Chip></Td>
+      <Td><PriorityChip value={r.prioritas} darkMode={darkMode} /></Td>
 
       <Td>
         <div className="max-w-[560px] whitespace-pre-wrap text-gray-800 dark:text-gray-100">
@@ -336,7 +365,7 @@ function Row({ r, onOpenResolve, onOpenDecline, onOpenDelete, zebra }) {
 
       <Td>
         {r.photoUrl ? (
-          <a href={r.photoUrl} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">
+          <a href={r.photoUrl} target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">
             Lihat
           </a>
         ) : <span className="text-gray-400">-</span>}
@@ -376,23 +405,48 @@ function Avatar({ name = "" }) {
     </div>
   );
 }
-function Chip({ children }) {
-  return <span className="inline-flex items-center px-2 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-200 text-xs">{children}</span>;
+
+function Chip({ children, darkMode = false }) {
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded border text-xs ${
+      darkMode 
+        ? "bg-gray-700 text-gray-300 border-gray-600" 
+        : "bg-gray-100 text-gray-700 border-gray-200"
+    }`}>
+      {children}
+    </span>
+  );
 }
-function PriorityChip({ value = "" }) {
+
+function PriorityChip({ value = "", darkMode = false }) {
   const v = String(value || "").toLowerCase();
   const cls =
-    v.includes("urgent") ? "bg-red-200 text-red-900 border-red-300" :
-    v.includes("high")   ? "bg-red-100 text-red-800 border-red-200" :
-    v.includes("low")    ? "bg-green-100 text-green-800 border-green-200" :
-                           "bg-yellow-100 text-yellow-800 border-yellow-200";
+    v.includes("urgent") 
+      ? darkMode 
+        ? "bg-red-800 text-red-100 border-red-700" 
+        : "bg-red-200 text-red-900 border-red-300"
+      : v.includes("high")   
+        ? darkMode 
+          ? "bg-red-700 text-red-100 border-red-600" 
+          : "bg-red-100 text-red-800 border-red-200"
+        : v.includes("low")    
+          ? darkMode 
+            ? "bg-green-700 text-green-100 border-green-600" 
+            : "bg-green-100 text-green-800 border-green-200"
+          : darkMode 
+            ? "bg-yellow-700 text-yellow-100 border-yellow-600" 
+            : "bg-yellow-100 text-yellow-800 border-yellow-200";
   return <span className={`inline-flex px-2 py-0.5 rounded border text-xs ${cls}`}>{value || "-"}</span>;
 }
 
-function Banner({ type = "ok", children, onClose }) {
+function Banner({ type = "ok", children, onClose, darkMode = false }) {
   const style = type === "error"
-    ? "bg-red-50 text-red-800 border-red-200"
-    : "bg-emerald-50 text-emerald-800 border-emerald-200";
+    ? darkMode
+      ? "bg-red-900 text-red-100 border-red-700"
+      : "bg-red-50 text-red-800 border-red-200"
+    : darkMode
+      ? "bg-emerald-900 text-emerald-100 border-emerald-700"
+      : "bg-emerald-50 text-emerald-800 border-emerald-200";
   return (
     <div className={`px-3 py-2 rounded-lg border ${style} flex items-start gap-2`}>
       <span className="mt-0.5">🔔</span>
@@ -403,31 +457,56 @@ function Banner({ type = "ok", children, onClose }) {
 }
 
 /* ===== Modals ===== */
-function ResolveModal({ row, onClose, onSubmit }) {
+function ResolveModal({ row, onClose, onSubmit, darkMode = false }) {
   const [notes, setNotes] = useState("");
   const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
   async function submit() { setBusy(true); await onSubmit(row.id, file, notes); setBusy(false); }
   return (
-    <Modal title={`Konfirmasi ${row.ticketNo || `#${row.id}`}`} onClose={onClose}>
-      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+    <Modal title={`Konfirmasi ${row.ticketNo || `#${row.id}`}`} onClose={onClose} darkMode={darkMode}>
+      <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'} mb-3`}>
         Tandai tiket sebagai <b>selesai</b>. Tambahkan foto/catatan (opsional).
       </p>
       <div className="space-y-3">
         <div className="space-y-1">
-          <label className="block text-sm font-medium">Lampirkan foto (opsional)</label>
-          <input type="file" accept="image/*" onChange={(e)=>setFile(e.target.files?.[0]||null)} className="block w-full text-sm"/>
+          <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : ''}`}>Lampirkan foto (opsional)</label>
+          <input 
+            type="file" 
+            accept="image/*" 
+            onChange={(e)=>setFile(e.target.files?.[0]||null)} 
+            className="block w-full text-sm"
+          />
         </div>
         <div className="space-y-1">
-          <label className="block text-sm font-medium">Catatan (opsional)</label>
-          <input type="text" value={notes} onChange={(e)=>setNotes(e.target.value)}
-                 className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+          <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : ''}`}>Catatan (opsional)</label>
+          <input 
+            type="text" 
+            value={notes} 
+            onChange={(e)=>setNotes(e.target.value)}
+            className={`w-full px-3 py-2 rounded-lg border ${
+              darkMode 
+                ? 'bg-gray-700 border-gray-600 text-white' 
+                : 'border-gray-300'
+            } focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+          />
         </div>
       </div>
       <div className="mt-4 flex justify-end gap-2">
-        <button onClick={onClose} className="px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50">Batal</button>
-        <button onClick={submit} disabled={busy}
-                className="px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow disabled:opacity-60">
+        <button 
+          onClick={onClose} 
+          className={`px-3 py-2 rounded-lg border ${
+            darkMode 
+              ? 'border-gray-600 hover:bg-gray-700 text-white' 
+              : 'border-gray-300 hover:bg-gray-50'
+          }`}
+        >
+          Batal
+        </button>
+        <button 
+          onClick={submit} 
+          disabled={busy}
+          className="px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow disabled:opacity-60"
+        >
           {busy ? "Menyimpan…" : "Konfirmasi Selesai"}
         </button>
       </div>
@@ -435,26 +514,46 @@ function ResolveModal({ row, onClose, onSubmit }) {
   );
 }
 
-function DeclineModal({ row, onClose, onSubmit }) {
+function DeclineModal({ row, onClose, onSubmit, darkMode = false }) {
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const canSubmit = notes.trim().length >= 5; // wajib ada alasan minimal 5 huruf
   async function submit() { setBusy(true); await onSubmit(row.id, notes); setBusy(false); }
   return (
-    <Modal title={`Tolak ${row.ticketNo || `#${row.id}`}`} onClose={onClose}>
-      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+    <Modal title={`Tolak ${row.ticketNo || `#${row.id}`}`} onClose={onClose} darkMode={darkMode}>
+      <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'} mb-3`}>
         Tuliskan <b>alasan penolakan</b>. Alasan ini akan dikirim ke email user yang membuat tiket.
       </p>
       <div className="space-y-1">
-        <label className="block text-sm font-medium">Catatan penolakan</label>
-        <textarea value={notes} onChange={(e)=>setNotes(e.target.value)} rows={4}
-          className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500" />
-        {!canSubmit && <div className="text-xs text-amber-700">Minimal 5 karakter.</div>}
+        <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : ''}`}>Catatan penolakan</label>
+        <textarea 
+          value={notes} 
+          onChange={(e)=>setNotes(e.target.value)} 
+          rows={4}
+          className={`w-full px-3 py-2 rounded-lg border ${
+            darkMode 
+              ? 'bg-gray-700 border-gray-600 text-white' 
+              : 'border-gray-300'
+          } focus:outline-none focus:ring-2 focus:ring-amber-500`} 
+        />
+        {!canSubmit && <div className="text-xs text-amber-700 dark:text-amber-300">Minimal 5 karakter.</div>}
       </div>
       <div className="mt-4 flex justify-end gap-2">
-        <button onClick={onClose} className="px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50">Batal</button>
-        <button onClick={submit} disabled={!canSubmit || busy}
-          className="px-3 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white shadow disabled:opacity-60">
+        <button 
+          onClick={onClose} 
+          className={`px-3 py-2 rounded-lg border ${
+            darkMode 
+              ? 'border-gray-600 hover:bg-gray-700 text-white' 
+              : 'border-gray-300 hover:bg-gray-50'
+          }`}
+        >
+          Batal
+        </button>
+        <button 
+          onClick={submit} 
+          disabled={!canSubmit || busy}
+          className="px-3 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white shadow disabled:opacity-60"
+        >
           {busy ? "Mengirim…" : "Tolak & Kirim Email"}
         </button>
       </div>
@@ -462,18 +561,30 @@ function DeclineModal({ row, onClose, onSubmit }) {
   );
 }
 
-function DeleteConfirm({ row, onClose, onSubmit }) {
+function DeleteConfirm({ row, onClose, onSubmit, darkMode = false }) {
   const [busy, setBusy] = useState(false);
   async function submit() { setBusy(true); await onSubmit(row.id); setBusy(false); }
   return (
-    <Modal title="Hapus Tiket" onClose={onClose}>
-      <p className="text-sm text-gray-700 dark:text-gray-300">
+    <Modal title="Hapus Tiket" onClose={onClose} darkMode={darkMode}>
+      <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
         Yakin ingin <b>menghapus</b> tiket <b>{row.ticketNo || `#${row.id}`}</b>? Tindakan ini tidak dapat dibatalkan.
       </p>
       <div className="mt-4 flex justify-end gap-2">
-        <button onClick={onClose} className="px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50">Batal</button>
-        <button onClick={submit} disabled={busy}
-          className="px-3 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white shadow disabled:opacity-60">
+        <button 
+          onClick={onClose} 
+          className={`px-3 py-2 rounded-lg border ${
+            darkMode 
+              ? 'border-gray-600 hover:bg-gray-700 text-white' 
+              : 'border-gray-300 hover:bg-gray-50'
+          }`}
+        >
+          Batal
+        </button>
+        <button 
+          onClick={submit} 
+          disabled={busy}
+          className="px-3 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white shadow disabled:opacity-60"
+        >
           {busy ? "Menghapus…" : "Hapus"}
         </button>
       </div>
@@ -481,12 +592,18 @@ function DeleteConfirm({ row, onClose, onSubmit }) {
   );
 }
 
-function Modal({ title, children, onClose }) {
+function Modal({ title, children, onClose, darkMode = false }) {
   return (
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 w-[560px] max-w-[92vw] rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700">
-        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+      <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 ${
+        darkMode ? 'bg-gray-800 text-gray-100' : 'bg-white text-gray-900'
+      } w-[560px] max-w-[92vw] rounded-2xl shadow-2xl border ${
+        darkMode ? 'border-gray-700' : 'border-gray-200'
+      }`}>
+        <div className={`px-5 py-4 border-b ${
+          darkMode ? 'border-gray-700' : 'border-gray-100'
+        } flex items-center justify-between`}>
           <div className="font-semibold">{title}</div>
           <button onClick={onClose} className="text-sm text-gray-500 hover:underline">tutup</button>
         </div>
