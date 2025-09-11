@@ -202,26 +202,8 @@ export default function TicketSolved(){
   const [loadingST, setLoadingST] = useState(false);
   const [qST, setQST] = useState("");
 
-  // Dark mode state
-  const [darkMode, setDarkMode] = useState(false);
-  
   // Debug state
   const [debugData, setDebugData] = useState(null);
-
-  // Check for dark mode preference
-  useEffect(() => {
-    const isDark = localStorage.getItem('darkMode') === 'true' ||
-                  window.matchMedia('(prefers-color-scheme: dark)').matches;
-    setDarkMode(isDark);
-    document.documentElement.classList.toggle('dark', isDark);
-  }, []);
-
-  const toggleDarkMode = () => {
-    const newDarkMode = !darkMode;
-    setDarkMode(newDarkMode);
-    localStorage.setItem('darkMode', newDarkMode);
-    document.documentElement.classList.toggle('dark', newDarkMode);
-  };
 
   /* ====== Derived ====== */
   const filteredSP = useMemo(() => {
@@ -671,7 +653,7 @@ export default function TicketSolved(){
 
   /* ===================== RENDER ===================== */
   return (
-    <div className={`relative min-h-screen flex flex-col items-center py-4 ${darkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}>
+    <div className="relative min-h-screen flex flex-col items-center py-4 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
       {notif && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-6 py-3 rounded shadow-md font-bold" onClick={()=>setNotif("")}>
           {notif}
@@ -679,16 +661,6 @@ export default function TicketSolved(){
       )}
 
       <div className="relative z-10 w-full max-w-[95vw]">
-        {/* Dark mode toggle */}
-        <div className="flex justify-end mb-2">
-          <button
-            onClick={toggleDarkMode}
-            className="px-3 py-1 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white"
-          >
-            {darkMode ? '☀️ Light Mode' : '🌙 Dark Mode'}
-          </button>
-        </div>
-
         {/* Tabs */}
         <div className="mb-3 flex gap-2">
           <button
@@ -707,7 +679,7 @@ export default function TicketSolved(){
 
         {/* ===== SharePoint Tab ===== */}
         {tab==="sp" && (
-          <div className="bg-white/95 dark:bg-gray-800/90 rounded-2xl p-6 shadow-xl">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl">
             <div className="flex flex-wrap justify-between items-start gap-3 mb-4">
               <div>
                 <h2 className="text-3xl font-bold mb-1 text-[#215ba6] dark:text-blue-400">Ticket Solved</h2>
@@ -746,7 +718,7 @@ export default function TicketSolved(){
 
             <div className="text-sm text-gray-600 dark:text-gray-400 mb-3">Total: {filteredSP.length}{qSP ? ` (dari ${rowsSP.length})` : ""}</div>
 
-            <div className="overflow-x-auto bg-white/95 dark:bg-gray-700 rounded-xl shadow min-h-[350px]">
+            <div className="overflow-x-auto bg-white dark:bg-gray-700 rounded-xl shadow min-h-[350px]">
               <table className="min-w-full w-full text-base table-auto">
                 <thead>
                   <tr className="bg-blue-50 dark:bg-blue-900 text-[#215ba6] dark:text-blue-300 text-lg">
@@ -781,7 +753,7 @@ export default function TicketSolved(){
 
         {/* ===== Staging Tab ===== */}
         {tab==="staging" && (
-          <div className="bg-white/95 dark:bg-gray-800/90 rounded-2xl p-6 shadow-xl">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl">
             <div className="flex flex-wrap justify-between items-start gap-3 mb-4">
               <div>
                 <h2 className="text-3xl font-bold mb-1 text-[#215ba6] dark:text-blue-400">Ticket Solved — Dari Ticket Entry (Staging)</h2>
@@ -801,7 +773,7 @@ export default function TicketSolved(){
 
             <div className="text-sm text-gray-600 dark:text-gray-400 mb-3">Total: {filteredST.length}{qST ? ` (dari ${rowsST.length})` : ""}</div>
 
-            <div className="overflow-x-auto bg-white/95 dark:bg-gray-700 rounded-xl shadow min-h-[350px]">
+            <div className="overflow-x-auto bg-white dark:bg-gray-700 rounded-xl shadow min-h-[350px]">
               <table className="min-w-full w-full text-base table-auto">
                 <thead>
                   <tr className="bg-blue-50 dark:bg-blue-900 text-[#215ba6] dark:text-blue-300 text-lg">
@@ -843,7 +815,6 @@ export default function TicketSolved(){
           onRemovePhoto={removePhoto}
           fileInputRef={fileInputRef}
           photoPreview={photoPreview}
-          darkMode={darkMode}
         />
       )}
 
@@ -1052,17 +1023,15 @@ function RowST({ r, zebra }) {
 }
 
 /* ===================== Modal Form (SharePoint) ===================== */
-function FormModal({ mode, data, onClose, onSubmit, onPickPhoto, onRemovePhoto, photoPreview, fileInputRef, darkMode }) {
+function FormModal({ mode, data, onClose, onSubmit, onPickPhoto, onRemovePhoto, photoPreview, fileInputRef }) {
   return (
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div
-        className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 ${
-          darkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"
-        } w-[720px] max-w-[92vw] rounded-2xl shadow-2xl border ${darkMode ? "border-gray-700" : "border-gray-200"}`}
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white w-[720px] max-w-[92vw] rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700"
       >
         <div
-          className={`px-5 py-4 border-b ${darkMode ? "border-gray-700" : "border-gray-100"} flex items-center justify-between`}
+          className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between"
         >
           <div className="font-semibold">{mode === "edit" ? "Edit" : "Tambah"} Ticket</div>
           <button onClick={onClose} className="text-sm text-gray-500 hover:underline">
@@ -1077,7 +1046,7 @@ function FormModal({ mode, data, onClose, onSubmit, onPickPhoto, onRemovePhoto, 
               <input
                 name="TicketNumber"
                 defaultValue={data.TicketNumber || ""}
-                className={`border rounded w-full px-3 py-2 ${darkMode ? "bg-gray-700 border-gray-600 text-white" : ""}`}
+                className="border rounded w-full px-3 py-2 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
               />
             </div>
             <div>
@@ -1085,7 +1054,7 @@ function FormModal({ mode, data, onClose, onSubmit, onPickPhoto, onRemovePhoto, 
               <input
                 name="Title"
                 defaultValue={data.Title || ""}
-                className={`border rounded w-full px-3 py-2 ${darkMode ? "bg-gray-700 border-gray-600 text-white" : ""}`}
+                className="border rounded w-full px-3 py-2 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
               />
             </div>
 
@@ -1094,7 +1063,7 @@ function FormModal({ mode, data, onClose, onSubmit, onPickPhoto, onRemovePhoto, 
               <select
                 name="Divisi"
                 defaultValue={data.Divisi || "Umum"}
-                className={`border rounded w-full px-3 py-2 ${darkMode ? "bg-gray-700 border-gray-600 text-white" : ""}`}
+                className="border rounded w-full px-3 py-2 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
               >
                 {DIVISI_OPTIONS.map((d) => (
                   <option key={d} value={d}>
@@ -1108,7 +1077,7 @@ function FormModal({ mode, data, onClose, onSubmit, onPickPhoto, onRemovePhoto, 
               <select
                 name="Priority"
                 defaultValue={data.Priority || "Normal"}
-                className={`border rounded w-full px-3 py-2 ${darkMode ? "bg-gray-700 border-gray-600 text-white" : ""}`}
+                className="border rounded w-full px-3 py-2 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
               >
                 {["Low", "Normal", "High"].map((p) => (
                   <option key={p} value={p}>
@@ -1123,7 +1092,7 @@ function FormModal({ mode, data, onClose, onSubmit, onPickPhoto, onRemovePhoto, 
               <select
                 name="Status"
                 defaultValue={data.Status || "Selesai"}
-                className={`border rounded w-full px-3 py-2 ${darkMode ? "bg-gray-700 border-gray-600 text-white" : ""}`}
+                className="border rounded w-full px-3 py-2 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
               >
                 {["Belum", "Pending", "Selesai"].map((s) => (
                   <option key={s} value={s}>
@@ -1137,7 +1106,7 @@ function FormModal({ mode, data, onClose, onSubmit, onPickPhoto, onRemovePhoto, 
               <input
                 name="TipeTicket"
                 defaultValue={data.TipeTicket || ""}
-                className={`border rounded w-full px-3 py-2 ${darkMode ? "bg-gray-700 border-gray-600 text-white" : ""}`}
+                className="border rounded w-full px-3 py-2 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
               />
             </div>
 
@@ -1146,7 +1115,7 @@ function FormModal({ mode, data, onClose, onSubmit, onPickPhoto, onRemovePhoto, 
               <input
                 name="Assignedto0"
                 defaultValue={data.Assignedto0?.displayName || data.Assignedto0 || ""}
-                className={`border rounded w-full px-3 py-2 ${darkMode ? "bg-gray-700 border-gray-600 text-white" : ""}`}
+                className="border rounded w-full px-3 py-2 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
                 placeholder="Nama/ID internal"
               />
             </div>
@@ -1155,7 +1124,7 @@ function FormModal({ mode, data, onClose, onSubmit, onPickPhoto, onRemovePhoto, 
               <input
                 name="Issueloggedby"
                 defaultValue={data.Issueloggedby || ""}
-                className={`border rounded w-full px-3 py-2 ${darkMode ? "bg-gray-700 border-gray-600 text-white" : ""}`}
+                className="border rounded w-full px-3 py-2 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
               />
             </div>
 
@@ -1164,7 +1133,7 @@ function FormModal({ mode, data, onClose, onSubmit, onPickPhoto, onRemovePhoto, 
               <input
                 name="DateReported"
                 defaultValue={data.DateReported || ""}
-                className={`border rounded w-full px-3 py-2 ${darkMode ? "bg-gray-700 border-gray-600 text-white" : ""}`}
+                className="border rounded w-full px-3 py-2 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
                 placeholder="ISO string / yyyy-mm-dd"
               />
             </div>
@@ -1173,7 +1142,7 @@ function FormModal({ mode, data, onClose, onSubmit, onPickPhoto, onRemovePhoto, 
               <input
                 name="DateFinished"
                 defaultValue={data.DateFinished || ""}
-                className={`border rounded w-full px-3 py-2 ${darkMode ? "bg-gray-700 border-gray-600 text-white" : ""}`}
+                className="border rounded w-full px-3 py-2 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
                 placeholder="ISO string / yyyy-mm-dd"
               />
             </div>
@@ -1184,7 +1153,7 @@ function FormModal({ mode, data, onClose, onSubmit, onPickPhoto, onRemovePhoto, 
                 name="Description"
                 defaultValue={data.Description || ""}
                 rows={3}
-                className={`border rounded w-full px-3 py-2 ${darkMode ? "bg-gray-700 border-gray-600 text-white" : ""}`}
+                className="border rounded w-full px-3 py-2 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
               />
             </div>
           </div>
@@ -1259,7 +1228,7 @@ async function setDonePhotoMetaOnSP(instance, accounts, itemId, fileName) {
     `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${TICKET_LIST_ID}/items/${itemId}/fields`,
     {
       method: "PATCH",
-      headers: { Authorization: `Bearer ${gTok.accessToken}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${gTok.accessToken}`, "Content-Type":"application/json" },
       body: JSON.stringify(body),
     }
   );
