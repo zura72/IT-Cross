@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMsal } from "@azure/msal-react";
+import { useTheme } from "../context/ThemeContext"; // Pastikan path ini sesuai
 
 /** ====== KONFIG ====== */
 const siteId =
@@ -14,6 +15,7 @@ const PHOTO_FIELD_INTERNAL_NAME = "DevicePhoto";
 /** ====== KOMPONEN ====== */
 export default function Devices() {
   const { instance, accounts } = useMsal();
+  const { dark } = useTheme(); // Menggunakan theme context dari sidebar
 
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -162,11 +164,11 @@ export default function Devices() {
   function renderPhoto(fields) {
     const url = getPhotoUrl(fields);
     return (
-      <div className="w-14 h-14 bg-gray-200 flex items-center justify-center overflow-hidden rounded shadow">
+      <div className="w-14 h-14 bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden rounded shadow">
         {url ? (
           <img src={url} alt="Device" className="w-full h-full object-cover" />
         ) : (
-          <span className="text-gray-400">—</span>
+          <span className="text-gray-400 dark:text-gray-500">—</span>
         )}
       </div>
     );
@@ -531,10 +533,16 @@ export default function Devices() {
 
   /** ====== UI ====== */
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+    <div className={`min-h-screen py-8 px-4 ml-64 transition-colors duration-300 ${
+      dark 
+        ? 'bg-gray-900 text-white' 
+        : 'bg-gradient-to-br from-blue-50 to-indigo-100 text-gray-800'
+    }`}>
       {notif && (
         <div
-          className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg font-semibold transition-opacity duration-300 cursor-pointer"
+          className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-lg shadow-lg font-semibold transition-opacity duration-300 cursor-pointer ${
+            dark ? 'bg-green-700' : 'bg-green-600'
+          } text-white`}
           onClick={() => setNotif("")}
         >
           {notif}
@@ -543,7 +551,9 @@ export default function Devices() {
 
       {modal.open && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50 p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-2xl shadow-2xl relative max-h-[90vh] overflow-y-auto">
+          <div className={`rounded-xl p-6 w-full max-w-2xl shadow-2xl relative max-h-[90vh] overflow-y-auto ${
+            dark ? 'bg-gray-800 text-white' : 'bg-white text-gray-800'
+          }`}>
             <button
               onClick={() => {
                 setModal({ open: false, mode: "", data: {} });
@@ -557,15 +567,19 @@ export default function Devices() {
               </svg>
             </button>
 
-            <h3 className="text-2xl font-bold text-gray-800 mb-6">
+            <h3 className="text-2xl font-bold mb-6">
               {modal.mode === "edit" ? "Edit" : "Tambah"} Device
             </h3>
 
             <form onSubmit={doCreateOrEdit} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Foto Perangkat</label>
+                <label className="block text-sm font-medium mb-2">Foto Perangkat</label>
                 <div className="flex items-center space-x-4">
-                  <label className="flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 transition-colors">
+                  <label className={`flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                    dark 
+                      ? 'border-gray-600 hover:border-blue-500' 
+                      : 'border-gray-300 hover:border-blue-500'
+                  }`}>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
@@ -607,11 +621,15 @@ export default function Devices() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nama Perangkat*</label>
+                  <label className="block text-sm font-medium mb-1">Nama Perangkat*</label>
                   <input
                     name="Title"
                     defaultValue={modal.data?.Title || ""}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
+                      dark 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'border-gray-300 text-gray-800'
+                    }`}
                     required
                     autoFocus
                     placeholder="Contoh: Laptop Dell XPS 13"
@@ -619,21 +637,29 @@ export default function Devices() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tipe Perangkat</label>
+                  <label className="block text-sm font-medium mb-1">Tipe Perangkat</label>
                   <input
                     name="Model"
                     defaultValue={modal.data?.Model || ""}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
+                      dark 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'border-gray-300 text-gray-800'
+                    }`}
                     placeholder="PERSONAL COMPUTER (PC)"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <label className="block text-sm font-medium mb-1">Status</label>
                   <select
                     name="Status"
                     defaultValue={modal.data?.Status || ""}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
+                      dark 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'border-gray-300 text-gray-800'
+                    }`}
                   >
                     <option value="">Pilih Status</option>
                     {getUniqueOptions("Status").map((opt) => (
@@ -650,11 +676,15 @@ export default function Devices() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Pabrikan</label>
+                  <label className="block text-sm font-medium mb-1">Pabrikan</label>
                   <select
                     name="Manufacturer"
                     defaultValue={modal.data?.Manufacturer || ""}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
+                      dark 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'border-gray-300 text-gray-800'
+                    }`}
                   >
                     <option value="">Pilih Pabrikan</option>
                     {getUniqueOptions("Manufacturer").map((opt) => (
@@ -671,17 +701,21 @@ export default function Devices() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nomor Serial</label>
+                  <label className="block text-sm font-medium mb-1">Nomor Serial</label>
                   <input
                     name="SerialNumber"
                     defaultValue={modal.data?.SerialNumber || ""}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
+                      dark 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'border-gray-300 text-gray-800'
+                    }`}
                     placeholder="Masukkan nomor serial perangkat"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">ID Pengguna</label>
+                  <label className="block text-sm font-medium mb-1">ID Pengguna</label>
                   <input
                     name="CurrentOwnerLookupId"
                     defaultValue={
@@ -689,17 +723,25 @@ export default function Devices() {
                         ? String(modal.data.CurrentOwnerLookupId)
                         : ""
                     }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
+                      dark 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'border-gray-300 text-gray-800'
+                    }`}
                     placeholder="ID user (angka) untuk lookup"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Departemen</label>
+                  <label className="block text-sm font-medium mb-1">Departemen</label>
                   <select
                     name="Divisi"
                     defaultValue={modal.data?.Divisi || ""}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
+                      dark 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'border-gray-300 text-gray-800'
+                    }`}
                   >
                     <option value="">Pilih Departemen</option>
                     {getUniqueOptions("Divisi").map((opt) => (
@@ -720,7 +762,7 @@ export default function Devices() {
                     />
                   </div>
                   <div className="ml-3 text-sm">
-                    <label className="font-medium text-gray-700">Antivirus Terpasang</label>
+                    <label className="font-medium">Antivirus Terpasang</label>
                   </div>
                 </div>
               </div>
@@ -728,7 +770,11 @@ export default function Devices() {
               <div className="flex gap-3 mt-8 justify-end">
                 <button
                   type="button"
-                  className="px-5 py-2.5 rounded-lg bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition"
+                  className={`px-5 py-2.5 rounded-lg font-medium hover:bg-gray-300 transition ${
+                    dark 
+                      ? 'bg-gray-600 text-white hover:bg-gray-700' 
+                      : 'bg-gray-200 text-gray-700'
+                  }`}
                   onClick={() => {
                     setModal({ open: false, mode: "", data: {} });
                     resetPhoto();
@@ -758,16 +804,22 @@ export default function Devices() {
       )}
 
       <div className="max-w-7xl mx-auto w-full">
-        <div className="bg-white rounded-xl shadow-lg p-6 md:p-8">
+        <div className={`rounded-xl shadow-lg p-6 md:p-8 ${
+          dark ? 'bg-gray-800' : 'bg-white'
+        }`}>
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800">Manajemen Perangkat</h1>
-              <p className="text-gray-600 mt-1">Kelola data perangkat IT perusahaan</p>
+              <h1 className={`text-3xl font-bold ${dark ? 'text-white' : 'text-gray-800'}`}>Manajemen Perangkat</h1>
+              <p className={`mt-1 ${dark ? 'text-gray-300' : 'text-gray-600'}`}>Kelola data perangkat IT perusahaan</p>
             </div>
 
             <div className="flex flex-wrap gap-3">
               <button
-                className="px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition flex items-center"
+                className={`px-4 py-2.5 rounded-lg font-medium transition flex items-center ${
+                  dark 
+                    ? 'bg-gray-700 text-white hover:bg-gray-600' 
+                    : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
                 onClick={() => handlePrint(false)}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -790,9 +842,13 @@ export default function Devices() {
 
           <div className="flex flex-wrap items-center gap-4 mb-6">
             <div className="flex flex-col">
-              <label className="text-sm font-medium text-gray-700 mb-1">Status</label>
+              <label className={`text-sm font-medium mb-1 ${dark ? 'text-gray-300' : 'text-gray-700'}`}>Status</label>
               <select
-                className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                className={`px-4 py-2 rounded-lg border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
+                  dark 
+                    ? 'bg-gray-700 border-gray-600 text-white' 
+                    : 'border-gray-300 text-gray-800'
+                }`}
                 value={filter.Status}
                 onChange={(e) => setFilter((f) => ({ ...f, Status: e.target.value }))}
               >
@@ -806,9 +862,13 @@ export default function Devices() {
             </div>
             
             <div className="flex flex-col">
-              <label className="text-sm font-medium text-gray-700 mb-1">Tipe</label>
+              <label className={`text-sm font-medium mb-1 ${dark ? 'text-gray-300' : 'text-gray-700'}`}>Tipe</label>
               <select
-                className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                className={`px-4 py-2 rounded-lg border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
+                  dark 
+                    ? 'bg-gray-700 border-gray-600 text-white' 
+                    : 'border-gray-300 text-gray-800'
+                }`}
                 value={filter.Model}
                 onChange={(e) => setFilter((f) => ({ ...f, Model: e.target.value }))}
               >
@@ -822,9 +882,13 @@ export default function Devices() {
             </div>
             
             <div className="flex flex-col">
-              <label className="text-sm font-medium text-gray-700 mb-1">Departemen</label>
+              <label className={`text-sm font-medium mb-1 ${dark ? 'text-gray-300' : 'text-gray-700'}`}>Departemen</label>
               <select
-                className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                className={`px-4 py-2 rounded-lg border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
+                  dark 
+                    ? 'bg-gray-700 border-gray-600 text-white' 
+                    : 'border-gray-300 text-gray-800'
+                }`}
                 value={filter.Divisi}
                 onChange={(e) => setFilter((f) => ({ ...f, Divisi: e.target.value }))}
               >
@@ -873,26 +937,30 @@ export default function Devices() {
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-lg shadow border border-gray-200">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+          <div className="overflow-x-auto rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className={`${dark ? 'bg-gray-700' : 'bg-gray-50'}`}>
                 <tr>
                   {FIELDS.map((field) => (
-                    <th key={field.key} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th key={field.key} className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                      dark ? 'text-gray-300' : 'text-gray-500'
+                    }`}>
                       {field.name}
                     </th>
                   ))}
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className={`px-6 py-3 text-right text-xs font-medium uppercase tracking-wider ${
+                    dark ? 'text-gray-300' : 'text-gray-500'
+                  }`}>
                     Aksi
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className={`divide-y ${dark ? 'divide-gray-700 bg-gray-800' : 'divide-gray-200 bg-white'}`}>
                 {loading ? (
                   <tr>
                     <td
                       colSpan={FIELDS.length + 1}
-                      className="px-6 py-12 text-center text-gray-500"
+                      className="px-6 py-12 text-center text-gray-500 dark:text-gray-400"
                     >
                       <div className="flex justify-center items-center">
                         <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -907,7 +975,7 @@ export default function Devices() {
                   <tr>
                     <td
                       colSpan={FIELDS.length + 1}
-                      className="px-6 py-12 text-center text-gray-500"
+                      className="px-6 py-12 text-center text-gray-500 dark:text-gray-400"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -920,17 +988,19 @@ export default function Devices() {
                   getFiltered().map((item, i) => (
                     <tr
                       key={item.id || i}
-                      className={`hover:bg-gray-50 cursor-pointer ${
+                      className={`hover:${dark ? 'bg-gray-700' : 'bg-gray-50'} cursor-pointer ${
                         selectedRow && selectedRow.id === item.id
-                          ? "bg-blue-50"
-                          : ""
+                          ? dark ? 'bg-blue-900' : 'bg-blue-50'
+                          : ''
                       }`}
                       onClick={() => setSelectedRow(item)}
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         {renderPhoto(item.fields)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
+                        dark ? 'text-white' : 'text-gray-900'
+                      }`}>
                         {item.fields?.Title ?? ""}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -946,22 +1016,34 @@ export default function Devices() {
                           {item.fields?.Status ?? ""}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${
+                        dark ? 'text-gray-300' : 'text-gray-500'
+                      }`}>
                         {item.fields?.Model ?? ""}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${
+                        dark ? 'text-gray-300' : 'text-gray-500'
+                      }`}>
                         {item.fields?.Manufacturer ?? ""}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${
+                        dark ? 'text-gray-300' : 'text-gray-500'
+                      }`}>
                         {item.fields?.SerialNumber ?? ""}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${
+                        dark ? 'text-gray-300' : 'text-gray-500'
+                      }`}>
                         {renderPengguna(item.fields)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${
+                        dark ? 'text-gray-300' : 'text-gray-500'
+                      }`}>
                         {item.fields?.Divisi ?? ""}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${
+                        dark ? 'text-gray-300' : 'text-gray-500'
+                      }`}>
                         {item.fields?.AntiVirus ? (
                           <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-green-100">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" viewBox="0 0 20 20" fill="currentColor">
@@ -980,7 +1062,11 @@ export default function Devices() {
                         {selectedRow && selectedRow.id === item.id ? (
                           <div className="flex justify-end space-x-2">
                             <button
-                              className="text-indigo-600 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-md transition"
+                              className={`text-indigo-600 hover:text-indigo-900 px-3 py-1.5 rounded-md transition ${
+                                dark 
+                                  ? 'bg-indigo-900 text-indigo-100 hover:bg-indigo-800' 
+                                  : 'bg-indigo-50 hover:bg-indigo-100'
+                              }`}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleEdit();
@@ -989,7 +1075,11 @@ export default function Devices() {
                               Edit
                             </button>
                             <button
-                              className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-md transition"
+                              className={`text-red-600 hover:text-red-900 px-3 py-1.5 rounded-md transition ${
+                                dark 
+                                  ? 'bg-red-900 text-red-100 hover:bg-red-800' 
+                                  : 'bg-red-50 hover:bg-red-100'
+                              }`}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDelete();
@@ -1008,7 +1098,7 @@ export default function Devices() {
           </div>
 
           {getFiltered().length > 0 && !loading && (
-            <div className="mt-4 text-sm text-gray-500">
+            <div className={`mt-4 text-sm ${dark ? 'text-gray-400' : 'text-gray-500'}`}>
               Menampilkan {getFiltered().length} dari {data.length} perangkat
             </div>
           )}

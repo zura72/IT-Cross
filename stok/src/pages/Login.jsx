@@ -178,64 +178,80 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-100 p-4">
-      <div className="max-w-4xl w-full flex flex-col md:flex-row rounded-3xl overflow-hidden shadow-2xl">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-indigo-800 to-purple-900 p-4 relative overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+CiAgPHBhdGggZD0iTTAgMGg2MHY2MEgweiIgZmlsbD0ibm9uZSIvPgogIDxjaXJjbGUgY3g9IjMwIiBjeT0iMzAiIHI9IjEiIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPgo8L3N2Zz4=')] opacity-10"></div>
+      
+      {/* Animated Circles Background */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600 rounded-full mix-blend-soft-light filter blur-3xl opacity-10 animate-pulse-slow"></div>
+      <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-indigo-600 rounded-full mix-blend-soft-light filter blur-3xl opacity-10 animate-pulse-slow delay-1000"></div>
+      
+      <div className="max-w-5xl w-full flex flex-col md:flex-row rounded-3xl overflow-hidden shadow-2xl bg-white/5 backdrop-blur-sm border border-white/10">
         {/* Panel Kiri - Informasi Perusahaan */}
-        <div className="w-full md:w-2/5 bg-gradient-to-br from-[#7159d4] to-[#b681ff] text-white p-8 flex flex-col justify-between">
-          <div>
-            <h1 className="text-2xl font-bold mb-6">IT Asset Management</h1>
-            <p className="text-purple-100 mb-4">
+        <div className="w-full md:w-2/5 bg-gradient-to-br from-[#7159d4] to-[#b681ff] text-white p-10 flex flex-col justify-between relative overflow-hidden">
+          {/* Background Pattern untuk Panel Kiri */}
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+CiAgPHBhdGggZD0iTTAgMGg2MHY2MEgweiIgZmlsbD0ibm9uZSIvPgogIDxjaXJjbGUgY3g9IjMwIiBjeT0iMzAiIHI9IjEiIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIi8+Cjwvc3ZnPg==')] opacity-10"></div>
+          
+          <div className="relative z-10">
+            <h1 className="text-3xl font-bold mb-8">IT Asset Management</h1>
+            <p className="text-purple-100 mb-6 text-lg leading-relaxed">
               Sistem manajemen aset TI terintegrasi untuk PT Waskita Karya Infrastruktur
             </p>
-            <div className="flex items-center mt-2 mb-4">
-              <div className="w-8 h-0.5 bg-purple-300 mr-2"></div>
-              <span className="text-sm text-purple-200">Akses terkontrol dan terjamin</span>
-            </div>
-            <div className="flex items-center mt-2 mb-4">
-              <div className="w-8 h-0.5 bg-purple-300 mr-2"></div>
-              <span className="text-sm text-purple-200">Manajemen aset yang efisien</span>
+            <div className="space-y-4 mt-10">
+              <div className="flex items-center">
+                <div className="w-10 h-0.5 bg-purple-300 mr-3"></div>
+                <span className="text-purple-200">Akses terkontrol dan terjamin</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-10 h-0.5 bg-purple-300 mr-3"></div>
+                <span className="text-purple-200">Manajemen aset yang efisien</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-10 h-0.5 bg-purple-300 mr-3"></div>
+                <span className="text-purple-200">Laporan real-time</span>
+              </div>
             </div>
           </div>
           
-          <div className="mt-8">
-            <div className="flex items-center justify-start space-x-4 mb-6">
+          <div className="relative z-10 mt-8">
+            <div className="flex items-center justify-start space-x-6 mb-8">
               <img
                 src="/Danantara-Indonesia-Logo-2025.png"
                 alt="Danantara Indonesia Logo"
-                className="h-12 w-auto object-contain opacity-90"
+                className="h-20 w-auto object-contain opacity-95"
               />
               <img
                 src="/logo-wki.png"
                 alt="Waskita Infrastruktur Logo"
-                className="h-10 w-auto object-contain opacity-90"
+                className="h-16 w-auto object-contain opacity-95"
               />
             </div>
-            <p className="text-xs text-purple-200">
+            <p className="text-sm text-purple-200">
               &copy; {new Date().getFullYear()} PT Waskita Karya Infrastruktur
             </p>
           </div>
         </div>
         
         {/* Panel Kanan - Form Login */}
-        <div className="w-full md:w-3/5 bg-white p-8 md:p-10 flex flex-col justify-center">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-800 mb-2">Masuk ke Sistem</h2>
-            <p className="text-gray-600">Gunakan akun Microsoft Anda untuk mengakses sistem</p>
+        <div className="w-full md:w-3/5 bg-white p-10 flex flex-col justify-center relative">
+          <div className="text-center mb-10">
+            <h2 className="text-4xl font-bold text-gray-800 mb-3">Masuk ke Sistem</h2>
+            <p className="text-gray-600 text-lg">Gunakan akun Microsoft Anda untuk mengakses sistem</p>
           </div>
           
           {/* Banner peringatan saat pakai fallback */}
           {configError && (
-            <div className="mb-6 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm flex items-start">
-              <svg className="w-5 h-5 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm flex items-start">
+              <svg className="w-6 h-6 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
               <span>{configError}</span>
             </div>
           )}
           
-          <div className="mb-6 flex justify-center">
-            <div className="bg-gray-100 p-4 rounded-2xl inline-flex">
-              <span className="text-gray-700 font-medium">
+          <div className="mb-8 flex justify-center">
+            <div className="bg-gray-100 p-5 rounded-2xl inline-flex shadow-sm">
+              <span className="text-gray-700 font-medium text-lg">
                 {new Date().toLocaleDateString("id-ID", {
                   weekday: 'long',
                   day: "numeric",
@@ -247,7 +263,7 @@ export default function Login() {
           </div>
           
           <form onSubmit={handleLogin} className="w-full">
-            <div className="flex items-center mb-6">
+            <div className="flex items-center mb-8 justify-center">
               <label className="flex items-center cursor-pointer">
                 <div className="relative">
                   <input
@@ -257,21 +273,24 @@ export default function Login() {
                     onChange={(e) => setRememberMe(e.target.checked)}
                     className="sr-only"
                   />
-                  <div className={`block w-12 h-6 rounded-full ${rememberMe ? 'bg-purple-600' : 'bg-gray-300'}`}></div>
-                  <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${rememberMe ? 'transform translate-x-6' : ''}`}></div>
+                  <div className={`block w-14 h-7 rounded-full ${rememberMe ? 'bg-purple-600' : 'bg-gray-300'}`}></div>
+                  <div className={`dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform ${rememberMe ? 'transform translate-x-7' : ''}`}></div>
                 </div>
-                <span className="ml-3 text-gray-700 font-medium select-none">Ingat saya</span>
+                <span className="ml-4 text-gray-700 font-medium select-none text-lg">Ingat saya</span>
               </label>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#7159d4] to-[#b681ff] hover:from-[#b681ff] hover:to-[#7159d4] text-white font-bold shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center"
+              className="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-[#7159d4] to-[#b681ff] hover:from-[#b681ff] hover:to-[#7159d4] text-white font-bold text-lg shadow-lg transition-all duration-300 transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center relative overflow-hidden group"
             >
+              {/* Animated background effect on hover */}
+              <span className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></span>
+              
               {loading ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin -ml-1 mr-3 h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
@@ -279,7 +298,7 @@ export default function Login() {
                 </>
               ) : (
                 <>
-                  <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <svg className="w-6 h-6 mr-3" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 4C14.2 4 16 5.8 16 8C16 10.2 14.2 12 12 12C9.8 12 8 10.2 8 8C8 5.8 9.8 4 12 4ZM12 14C16.4 14 20 15.8 20 18V20H4V18C4 15.8 7.6 14 12 14Z" fill="currentColor"/>
                   </svg>
                   Login dengan Microsoft
@@ -288,13 +307,29 @@ export default function Login() {
             </button>
           </form>
           
-          <div className="mt-8 pt-6 border-t border-gray-100 text-center">
-            <p className="text-sm text-gray-500">
+          <div className="mt-12 pt-8 border-t border-gray-100 text-center">
+            <p className="text-gray-500 text-base">
               Butuh bantuan? Hubungi tim IT support
             </p>
           </div>
         </div>
       </div>
+      
+      {/* Custom CSS untuk animasi tambahan */}
+      <style>
+        {`
+          @keyframes pulse-slow {
+            0%, 100% { opacity: 0.1; }
+            50% { opacity: 0.15; }
+          }
+          .animate-pulse-slow {
+            animation: pulse-slow 6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+          }
+          .dot {
+            transition: transform 0.3s ease-in-out;
+          }
+        `}
+      </style>
     </div>
   );
 }

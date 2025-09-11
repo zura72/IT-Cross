@@ -1,4 +1,4 @@
-// stok-inventory/src/App.jsx
+// src/App.jsx
 import React from "react";
 import { useIsAuthenticated } from "@azure/msal-react";
 import { ThemeProvider } from "./context/ThemeContext";

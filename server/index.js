@@ -25,7 +25,12 @@ function toAbs(u = "") {
   return `${PUBLIC_BASE_URL}${u.startsWith("/") ? u : `/${u}`}`;
 }
 
-const UPLOAD_DIR = path.join(__dirname, "uploads");
+// Vercel-specific setup
+const IS_VERCEL = process.env.VERCEL === '1';
+const UPLOAD_DIR = IS_VERCEL 
+  ? '/tmp/uploads'  // Vercel hanya bisa write ke /tmp
+  : path.join(__dirname, "uploads");
+
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const upload = multer({
@@ -41,11 +46,32 @@ const upload = multer({
 });
 
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, etc)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      process.env.FRONTEND_URL,
+      process.env.ADMIN_URL,
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:8080'
+    ].filter(Boolean);
+    
+    if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 app.use(morgan("dev"));
 
+// Serve uploaded files from /tmp in Vercel
 app.use(
   "/uploads",
   express.static(UPLOAD_DIR, {
@@ -78,8 +104,12 @@ function loadDB() {
 function saveDB() {
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(DB, null, 2), "utf8");
-  } catch {}
+  } catch (e) {
+    console.error('Error saving DB:', e);
+  }
 }
+
+// Load DB on startup
 loadDB();
 
 function nextTicketNo() {
@@ -87,6 +117,7 @@ function nextTicketNo() {
   saveDB();
   return "TKT-" + String(n).padStart(3, "0");
 }
+
 function autoPriority(division = "") {
   return String(division).trim().toLowerCase() === "direksi" ? "Urgent" : "Normal";
 }
@@ -96,28 +127,55 @@ async function sendEmail({ to, subject, html }) {
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
   const from = process.env.FROM_EMAIL || user;
+  
   if (!host || !user || !pass || !from) {
     console.log("[mail] skipped (no SMTP). Subject:", subject, "to:", to);
     return { ok: true, skipped: true };
   }
-  const transporter = nodemailer.createTransport({
-    host,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: false,
-    auth: { user, pass },
-  });
-  await transporter.sendMail({ from, to: Array.isArray(to) ? to : [to], subject, html });
-  return { ok: true };
+  
+  try {
+    const transporter = nodemailer.createTransport({
+      host,
+      port: Number(process.env.SMTP_PORT || 587),
+      secure: false,
+      auth: { user, pass },
+    });
+    
+    await transporter.sendMail({ 
+      from, 
+      to: Array.isArray(to) ? to : [to], 
+      subject, 
+      html 
+    });
+    
+    return { ok: true };
+  } catch (e) {
+    console.error('Email error:', e);
+    throw e;
+  }
 }
 
-app.get("/api/health", (_req, res) => res.json({ ok: true, port: PORT, ts: Date.now() }));
+// Routes
+app.get("/api/health", (_req, res) => res.json({ 
+  ok: true, 
+  port: PORT, 
+  ts: Date.now(),
+  vercel: IS_VERCEL,
+  env: process.env.NODE_ENV 
+}));
+
 app.get("/api/config", (_req, res) => {
   const envAdmins = (process.env.ADMIN_EMAILS || "adminapp@waskitainfrastruktur.co.id")
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
+  
   res.setHeader("Content-Type", "application/json; charset=utf-8");
-  res.json({ ok: true, adminEmails: envAdmins });
+  res.json({ 
+    ok: true, 
+    adminEmails: envAdmins,
+    uploadDir: UPLOAD_DIR
+  });
 });
 
 app.get("/api/tickets", (req, res) => {
@@ -152,7 +210,7 @@ app.get("/api/tickets", (req, res) => {
 
 app.post("/api/tickets", upload.single("photo"), (req, res) => {
   try {
-    const { name = "User", division = "Umum" } = req.body;
+    const { name = "User", division = "Umum", email = "" } = req.body;
     const description = req.body.description || req.body.desc || "";
     const priority = req.body.priority || autoPriority(division);
     const file = req.file;
@@ -165,7 +223,7 @@ app.post("/api/tickets", upload.single("photo"), (req, res) => {
       id,
       ticketNo,
       name,
-      email: req.body.email || "",
+      email,
       division,
       description,
       status: "Belum",
@@ -272,7 +330,7 @@ app.get("/api/uploads/proxy", async (req, res) => {
     if (!src) return res.status(400).send("src required");
 
     if (src.startsWith("/uploads/")) {
-      const p = path.join(__dirname, src.replace(/^\/+/, ""));
+      const p = path.join(UPLOAD_DIR, src.replace(/^\/+uploads\/?/, ""));
       if (!fs.existsSync(p)) return res.status(404).send("Not found");
       return fs.createReadStream(p).pipe(res);
     }
@@ -296,6 +354,13 @@ app.post("/api/notify/email", mailLimiter, async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`WKI server running on ${PUBLIC_BASE_URL}`);
-});
+// Export untuk Vercel serverless
+export default app;
+
+// Jalankan server lokal hanya jika tidak di Vercel
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`WKI server running on ${PUBLIC_BASE_URL}`);
+    console.log(`Upload directory: ${UPLOAD_DIR}`);
+  });
+}

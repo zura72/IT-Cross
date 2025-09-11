@@ -5,16 +5,19 @@ const ThemeContext = createContext();
 
 export function ThemeProvider({ children }) {
   const [dark, setDark] = useState(() => {
-    // Cek localStorage terlebih dahulu, lalu system preference
-    const saved = localStorage.getItem("theme");
-    if (saved) {
-      return saved === "dark";
+    // Cek localStorage terlebih dahulu
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme) {
+      return savedTheme === "dark";
     }
+    // Jika tidak ada, gunakan preferensi sistem
     return window.matchMedia("(prefers-color-scheme: dark)").matches;
   });
 
   useEffect(() => {
-    // Update HTML class dan localStorage
+    console.log("ThemeContext: Theme changed to:", dark ? "dark" : "light");
+    
+    // Update HTML class
     if (dark) {
       document.documentElement.classList.add("dark");
       localStorage.setItem("theme", "dark");
@@ -24,7 +27,10 @@ export function ThemeProvider({ children }) {
     }
   }, [dark]);
 
-  const toggleDark = () => setDark(!dark);
+  const toggleDark = () => {
+    console.log("ThemeContext: Toggling dark mode");
+    setDark(!dark);
+  };
 
   return (
     <ThemeContext.Provider value={{ dark, toggleDark }}>

@@ -1,14 +1,25 @@
+// src/components/Sidebar.jsx
 import React, { useState, useEffect } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
-  BsBarChart, BsCpu, BsPlug, BsGear,
-  BsShieldCheck, BsChevronDown, BsChevronUp, BsHeadset,
-  BsBoxArrowRight, BsPersonCircle
+  BsBarChart, 
+  BsCpu, 
+  BsPlug, 
+  BsGear,
+  BsShieldCheck, 
+  BsChevronDown, 
+  BsChevronUp, 
+  BsHeadset,
+  BsBoxArrowRight, 
+  BsPersonCircle,
+  BsHouse,
+  BsListCheck
 } from "react-icons/bs";
 import { FaRegMoon, FaRegSun } from "react-icons/fa";
 import { useMsal } from "@azure/msal-react";
+import { useTheme } from "../context/ThemeContext"; // PERBAIKI IMPORT PATH
 
-export default function Sidebar({ dark, toggleDark }) {
+export default function Sidebar() {
   const [chartsOpen, setChartsOpen] = useState(false);
   const [helpdeskOpen, setHelpdeskOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -16,6 +27,9 @@ export default function Sidebar({ dark, toggleDark }) {
   const { instance, accounts } = useMsal();
   const navigate = useNavigate();
   const user = accounts[0] || {};
+  
+  // Gunakan useTheme() untuk mengakses state dark mode global
+  const { dark, toggleDark } = useTheme();
 
   useEffect(() => {
     if (location.pathname.startsWith("/charts")) setChartsOpen(true);
@@ -67,7 +81,7 @@ export default function Sidebar({ dark, toggleDark }) {
               " flex items-center px-6 py-3 text-base font-medium rounded-lg transition-all mx-2"
             }
           >
-            <BsBarChart className="mr-4" /> Dashboard
+            <BsHouse className="mr-4" /> Dashboard
           </NavLink>
 
           <NavLink
@@ -229,7 +243,31 @@ export default function Sidebar({ dark, toggleDark }) {
                 {user.username || user.email || "user@waskita.com"}
               </p>
             </div>
+            <button
+              onClick={toggleUserMenu}
+              className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+            >
+              {userMenuOpen ? <BsChevronUp /> : <BsChevronDown />}
+            </button>
           </div>
+
+          {/* User Menu Dropdown */}
+          {userMenuOpen && (
+            <div className="mb-4 p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
+              <button
+                onClick={() => navigate("/profile")}
+                className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition"
+              >
+                📋 Profil Saya
+              </button>
+              <button
+                onClick={() => navigate("/settings")}
+                className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition"
+              >
+                ⚙️ Pengaturan
+              </button>
+            </div>
+          )}
 
           {/* Dark Mode Toggle */}
           <div className="flex items-center justify-between mb-3 p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
@@ -248,6 +286,7 @@ export default function Sidebar({ dark, toggleDark }) {
                 dark ? "bg-blue-600" : "bg-gray-300"
               }`}
               onClick={toggleDark}
+              aria-label="Toggle dark mode"
             >
               <span
                 className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${

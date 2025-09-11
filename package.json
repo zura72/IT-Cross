@@ -14,15 +14,13 @@
     "build": "npm run build -w server && npm run build -w stok && npm run build -w web",
     "build:server": "npm run build -w server",
     "build:stok": "npm run build -w stok",
-    "build:web": "npm run build -w web"
+    "build:web": "npm run build -w web",
+    "vercel-build": "npm run build:web && npm run build:stok"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
     "http-proxy-middleware": "^3.0.5",
     "msw": "^2.11.1",
     "wait-on": "7.2.0"
-  },
-  "dependencies": {
-    "react-scripts": "^5.0.1"
   }
 }
