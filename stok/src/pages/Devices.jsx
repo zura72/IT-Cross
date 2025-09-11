@@ -38,7 +38,7 @@ export default function Devices() {
       { name: "Pabrikan", key: "Manufacturer" },
       { name: "Nomor Serial", key: "SerialNumber" },
       { name: "Pengguna", key: "CurrentOwnerLookupId" },
-      { name: "Departemen", key: "Divisi" },
+      { name: "Departemen", key: "Divisi" },  
       { name: "Antivirus", key: "AntiVirus" },
     ],
     []
@@ -170,140 +170,6 @@ export default function Devices() {
         )}
       </div>
     );
-  }
-
-  // ====== PRINT HELPERS (tanpa popup) ======
-  function getPhotoUrlFromFields(fields) {
-    try {
-      const PHOTO_FIELD_INTERNAL_NAME = "DevicePhoto";
-      let obj = fields?.[PHOTO_FIELD_INTERNAL_NAME];
-      if (typeof obj === "string") obj = JSON.parse(obj);
-      if (fields?.Attachments && obj?.fileName && fields?.id) {
-        return `${REST_URL}/Lists/Devices/Attachments/${fields.id}/${obj.fileName}`;
-      }
-    } catch {}
-    return "";
-  }
-
-  function buildPrintHTML(rows, userMap) {
-    const now = new Date().toLocaleString();
-    const head = `
-      <meta charset="utf-8" />
-      <title>Devices - Print</title>
-      <style>
-        /* Kertas & margin */
-        @page { size: A4 landscape; margin: 12mm; }
-        html, body { color:#000; font: 12px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        h2 { margin: 0 0 6px 0; }
-        .meta { font-size: 12px; color:#6b7280; margin-bottom: 12px; }
-
-        /* Tabel dan border tebal */
-        table { width: 100%; border-collapse: collapse; font-size: 12px; border: 1.5pt solid #000; }
-        thead th { background: #f3f4f6; text-align: left; border: 1.2pt solid #000; }
-        th, td { padding: 8px 10px; vertical-align: top; }
-        tbody td { border: 0.9pt solid #000; }
-        tr { page-break-inside: avoid; }
-        thead { display: table-header-group; }
-        tfoot { display: table-row-group; }
-
-        /* Foto */
-        td img { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; display:block; border: 0.9pt solid #000; }
-        .center { text-align:center; }
-      </style>
-    `;
-
-    const bodyRows = rows
-      .map((item) => {
-        const f = item.fields || {};
-        const photo = getPhotoUrlFromFields({ ...f, id: item.id });
-        const pengguna = f.CurrentOwnerLookupId ? (userMap[f.CurrentOwnerLookupId] || f.CurrentOwnerLookupId) : "";
-        const av = f.AntiVirus ? "✔" : "";
-        return `
-          <tr>
-            <td class="center">${photo ? `<img src="${photo}" />` : "—"}</td>
-            <td>${f.Title ?? ""}</td>
-            <td>${f.Status ?? ""}</td>
-            <td>${f.Model ?? ""}</td>
-            <td>${f.Manufacturer ?? ""}</td>
-            <td>${f.SerialNumber ?? ""}</td>
-            <td>${pengguna}</td>
-            <td>${f.Divisi ?? ""}</td>
-            <td class="center">${av}</td>
-          </tr>
-        `;
-      })
-      .join("");
-
-    return `<!doctype html>
-      <html>
-        <head>${head}</head>
-        <body>
-          <h2>Devices</h2>
-          <div class="meta">Dicetak: ${now}</div>
-          <table>
-            <thead>
-              <tr>
-                <th>Foto</th>
-                <th>Title</th>
-                <th>Status</th>
-                <th>Tipe</th>
-                <th>Pabrikan</th>
-                <th>Nomor Serial</th>
-                <th>Pengguna</th>
-                <th>Departemen</th>
-                <th>Antivirus</th>
-              </tr>
-            </thead>
-            <tbody>${bodyRows}</tbody>
-          </table>
-        </body>
-      </html>`;
-  }
-
-  async function printViaHiddenIframe(html) {
-    const iframe = document.createElement("iframe");
-    iframe.style.position = "fixed";
-    iframe.style.right = "0";
-    iframe.style.bottom = "0";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "0";
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentWindow.document;
-    doc.open();
-    doc.write(html);
-    doc.close();
-
-    // tunggu gambar supaya ikut tercetak
-    const imgs = iframe.contentDocument.images;
-    const waits = Array.from(imgs).map((img) =>
-      img.complete
-        ? Promise.resolve()
-        : new Promise((res) => {
-            img.onload = img.onerror = res;
-          })
-    );
-    await Promise.all(waits);
-
-    iframe.contentWindow.focus();
-    iframe.contentWindow.print();
-
-    setTimeout(() => document.body.removeChild(iframe), 1000);
-  }
-
-  // tombol: cetak sesuai filter aktif
-  async function handlePrintFiltered() {
-    const rows = getFiltered(); // fungsi kamu yang sudah ada
-    const html = buildPrintHTML(rows, userMap);
-    await printViaHiddenIframe(html);
-  }
-
-  // tombol: cetak semua data (abaikan filter)
-  async function handlePrintAll() {
-    const rows = data || [];
-    const html = buildPrintHTML(rows, userMap);
-    await printViaHiddenIframe(html);
   }
 
   function renderPengguna(fields) {
@@ -663,238 +529,12 @@ export default function Devices() {
     removePhoto();
   }
 
-  // ==== CETAK: via hidden iframe (no popup) ====
-  const PRINT_CSS = `
-    * { box-sizing: border-box; }
-    body { font: 12px/1.45 'Inter', Arial, sans-serif; color: #111; margin: 24px; }
-    h1 { margin: 0 0 4px; font-size: 20px; }
-    .meta { color:#555; margin: 0 0 14px; font-size: 11px; }
-    table { width: 100%; border-collapse: collapse; border: 1.5pt solid #000; }
-    th, td { border: 0.9pt solid #000; padding: 6px 8px; vertical-align: top; }
-    thead th { background: #eef4ff; text-align: left; border: 1.2pt solid #000; }
-    tbody tr:nth-child(even) { background: #fbfdff; }
-    .img { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border:0.9pt solid #000; }
-    .check { font-size: 16px; }
-    @page { margin: 16mm; }
-  `;
-
-  // Ambil URL foto dari fields (sama logika dengan renderPhoto)
-  function getPhotoUrl(fields) {
-    try {
-      let obj = fields?.[PHOTO_FIELD_INTERNAL_NAME];
-      if (typeof obj === "string") obj = JSON.parse(obj);
-      if (fields.Attachments && obj?.fileName && fields.id) {
-        return `${REST_URL}/Lists/Devices/Attachments/${fields.id}/${obj.fileName}`;
-      }
-    } catch {}
-    return "";
-  }
-
-  // Buat HTML <table> dari array item
-  function buildTableHTML(items) {
-    const head = `
-      <thead>
-        <tr>
-          ${FIELDS.map((f) => `<th>${f.name}</th>`).join("")}
-        </tr>
-      </thead>
-    `;
-
-    const bodyRows = items
-      .map((it) => {
-        const f = it.fields || {};
-        const tds = FIELDS.map((col) => {
-          switch (col.key) {
-            case "Foto_x0020_Peralang": {
-              const url = getPhotoUrl(f);
-              return `<td>${url ? `<img class=\"img\" src=\"${url}\"/>` : ""}</td>`;
-            }
-            case "CurrentOwnerLookupId": {
-              const v = f.CurrentOwnerLookupId ? (userMap[f.CurrentOwnerLookupId] || f.CurrentOwnerLookupId) : "";
-              return `<td>${String(v ?? "")}</td>`;
-            }
-            case "AntiVirus": {
-              return `<td>${f.AntiVirus ? `<span class=\"check\">✔️</span>` : ""}</td>`;
-            }
-            default: {
-              const v = f[col.key];
-              return `<td>${v != null ? String(v) : ""}</td>`;
-            }
-          }
-        }).join("");
-        return `<tr>${tds}</tr>`;
-      })
-      .join("");
-
-    return `<table>${head}<tbody>${bodyRows}</tbody></table>`;
-  }
-
-  // Cetak: items = getFiltered() (untuk Print Filter) atau data (untuk Print Semua)
-  function printViaIframe(items, title = "Devices") {
-    const now = new Date();
-    const htmlDoc = `
-      <!doctype html>
-      <html>
-        <head>
-          <meta charset=\"utf-8\"/>
-          <title>${title}</title>
-          <style>${PRINT_CSS}</style>
-        </head>
-        <body>
-          <h1>${title}</h1>
-          <div class=\"meta\">\n            Total baris: ${items.length} &middot; Dicetak: ${now.toLocaleString()}\n          </div>
-          ${buildTableHTML(items)}
-        </body>
-      </html>
-    `;
-
-    const iframe = document.createElement("iframe");
-    iframe.style.position = "fixed";
-    iframe.style.right = "0";
-    iframe.style.bottom = "0";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "0";
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentWindow.document;
-    doc.open();
-    doc.write(htmlDoc);
-    doc.close();
-
-    // Tunggu render, lalu print & cleanup
-    iframe.onload = () => {
-      try {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-      } finally {
-        setTimeout(() => document.body.removeChild(iframe), 1200);
-      }
-    };
-  }
-
-  // Handler tombol
-  function handlePrintFiltered() {
-    printViaIframe(getFiltered(), "Devices (Sesuai Filter)");
-  }
-  function handlePrintAll() {
-    printViaIframe(
-      // urutkan sama seperti tampilan (opsional)
-      data.slice(),
-      "Devices (Semua Data)"
-    );
-  }
-
-  // ==== QUICK PRINT: cetak DOM yang sudah ada (tanpa popup/iframe) ====
-  const INLINE_PRINT_CSS = `
-    @media print {
-      body { background: white !important; }
-      /* Sembunyikan SEMUA, lalu tampilkan hanya area yang mau dicetak */
-      body * { visibility: hidden !important; }
-      #print-area, #print-area * { visibility: visible !important; }
-      #print-area { position: absolute; left: 0; top: 0; width: 100vw; }
-      /* Hapus elemen yang tidak perlu di print */
-      #print-area .no-print { display: none !important; }
-      #print-area table { width: 100%; border-collapse: collapse; border: 1.5pt solid #000; }
-      #print-area th, #print-area td { border: 0.9pt solid #000; padding: 6px 8px; }
-      #print-area thead th { background: #eef4ff; text-align: left; border: 1.2pt solid #000; }
-    }
-  `;
-
-  // inject CSS print hanya sekali
-  let injectedInlineCss = false;
-  function ensureInlinePrintCss() {
-    if (injectedInlineCss) return;
-    const style = document.createElement("style");
-    style.textContent = INLINE_PRINT_CSS;
-    document.head.appendChild(style);
-    injectedInlineCss = true;
-  }
-
-  // Print CEPAT untuk tampilan yang sedang difilter (pakai tabel yang sudah nampak)
-  function handlePrintFiltered() {
-    ensureInlinePrintCss();
-    // pastikan layout settle dulu
-    requestAnimationFrame(() => window.print());
-  }
-
-  /* ==== QUICK PRINT ALL (tanpa foto, super cepat) ==== */
-  const PAGE_HIDE_TO_PRINT_TEMP = `
-    @media print {
-      body * { visibility: hidden !important; }
-      #print-temp, #print-temp * { visibility: visible !important; }
-      #print-temp { position: absolute; left: 0; top: 0; width: 100%; }
-      #print-temp table { width: 100%; border-collapse: collapse; border: 1.5pt solid #000; }
-      #print-temp th, #print-temp td { border: 0.9pt solid #000; padding: 6px 8px; }
-      #print-temp thead th { background: #eef4ff; text-align: left; border: 1.2pt solid #000; }
-    }
-  `;
-
-  // Bangun tabel HTML cepat TANPA foto (lebih ngebut)
-  function buildTableHTMLNoPhoto(items) {
-    const cols = FIELDS.filter((c) => c.key !== "Foto_x0020_Peralang");
-    const head = `<thead><tr>${cols.map((c) => `<th>${c.name}</th>`).join("")}</tr></thead>`;
-    const body = items
-      .map((it) => {
-        const f = it.fields || {};
-        const tds = cols
-          .map((col) => {
-            if (col.key === "CurrentOwnerLookupId") {
-              const v = f.CurrentOwnerLookupId ? (userMap[f.CurrentOwnerLookupId] || f.CurrentOwnerLookupId) : "";
-              return `<td>${String(v ?? "")}</td>`;
-            }
-            if (col.key === "AntiVirus") {
-              return `<td>${f.AntiVirus ? "✔️" : ""}</td>`;
-            }
-            return `<td>${f[col.key] != null ? String(f[col.key]) : ""}</td>`;
-          })
-          .join("");
-        return `<tr>${tds}</tr>`;
-      })
-      .join("");
-    return `<table>${head}<tbody>${body}</tbody></table>`;
-  }
-
-  function handlePrintAllFast() {
-    // buat container sementara di halaman yg sama (no popup)
-    const div = document.createElement("div");
-    div.id = "print-temp";
-    div.style.position = "fixed";
-    div.style.left = "-10000px"; // sembunyikan di layar
-    const html = `
-      <style>${PAGE_HIDE_TO_PRINT_TEMP}</style>
-      <h1>Devices (Semua Data)</h1>
-      <div style="margin:6px 0 12px;color:#555;font-size:12px">
-        Total baris: ${data.length} &middot; Dicetak: ${new Date().toLocaleString()}
-      </div>
-      ${buildTableHTMLNoPhoto(data)}
-    `;
-    div.innerHTML = html;
-    document.body.appendChild(div);
-
-    // cetak & bersihkan
-    requestAnimationFrame(() => {
-      window.print();
-      setTimeout(() => div.remove(), 800);
-    });
-  }
-
   /** ====== UI ====== */
   return (
-    <div className="relative min-h-screen flex flex-col items-center py-8 bg-gray-50 dark:bg-gray-900">
-      <div
-        className="fixed inset-0 z-0"
-        style={{
-          background: `
-            linear-gradient(rgba(251, 250, 252, 0.25),rgba(45,30,90,0.14)),
-            url('/device-bg.jpg') center center / cover no-repeat
-          `,
-        }}
-      />
-
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
       {notif && (
         <div
-          className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-green-600 text-white px-6 py-3 rounded shadow-md font-bold"
+          className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg font-semibold transition-opacity duration-300 cursor-pointer"
           onClick={() => setNotif("")}
         >
           {notif}
@@ -902,86 +542,98 @@ export default function Devices() {
       )}
 
       {modal.open && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-          <div className="bg-white rounded-2xl p-6 sm:p-7 w-[92vw] max-w-2xl shadow-2xl relative">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-2xl shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => {
                 setModal({ open: false, mode: "", data: {} });
                 resetPhoto();
               }}
-              className="absolute right-3 top-2 text-2xl font-bold text-gray-400 hover:text-black"
+              className="absolute right-4 top-4 text-gray-500 hover:text-gray-700 text-xl"
               type="button"
             >
-              ×
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
 
-            <h3 className="font-bold text-xl mb-5">
+            <h3 className="text-2xl font-bold text-gray-800 mb-6">
               {modal.mode === "edit" ? "Edit" : "Tambah"} Device
             </h3>
 
-            <form onSubmit={doCreateOrEdit} className="space-y-4">
+            <form onSubmit={doCreateOrEdit} className="space-y-6">
               <div>
-                <label className="block text-sm font-semibold mb-1">Foto</label>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={onPickPhoto}
-                  className="block w-full text-sm file:mr-4 file:py-2 file:px-4
-                           file:rounded-md file:border-0 file:text-sm file:font-semibold
-                           file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                />
-                {photoPreview ? (
-                  <div className="mt-3 flex items-center gap-3">
-                    <img
-                      src={photoPreview}
-                      alt="preview"
-                      className="h-20 w-20 object-cover rounded-lg border"
+                <label className="block text-sm font-medium text-gray-700 mb-2">Foto Perangkat</label>
+                <div className="flex items-center space-x-4">
+                  <label className="flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span className="mt-2 text-sm text-gray-500">Upload foto</span>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={onPickPhoto}
+                      className="hidden"
                     />
-                    <button
-                      type="button"
-                      onClick={removePhoto}
-                      className="text-red-600 hover:underline"
-                    >
-                      Hapus foto
-                    </button>
-                  </div>
-                ) : modal.data?.[PHOTO_FIELD_INTERNAL_NAME] ? (
-                  <OldPhotoPreview
-                    meta={modal.data[PHOTO_FIELD_INTERNAL_NAME]}
-                    fields={modal.data}
-                  />
-                ) : null}
+                  </label>
+                  
+                  {photoPreview ? (
+                    <div className="relative">
+                      <img
+                        src={photoPreview}
+                        alt="preview"
+                        className="h-32 w-32 object-cover rounded-lg border shadow"
+                      />
+                      <button
+                        type="button"
+                        onClick={removePhoto}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : modal.data?.[PHOTO_FIELD_INTERNAL_NAME] ? (
+                    <OldPhotoPreview
+                      meta={modal.data[PHOTO_FIELD_INTERNAL_NAME]}
+                      fields={modal.data}
+                    />
+                  ) : null}
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-1">Title</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nama Perangkat*</label>
                   <input
                     name="Title"
                     defaultValue={modal.data?.Title || ""}
-                    className="border rounded w-full px-3 py-2"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                     required
                     autoFocus
+                    placeholder="Contoh: Laptop Dell XPS 13"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-1">Tipe</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tipe Perangkat</label>
                   <input
                     name="Model"
                     defaultValue={modal.data?.Model || ""}
-                    className="border rounded w-full px-3 py-2"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                     placeholder="PERSONAL COMPUTER (PC)"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-1">Status</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                   <select
                     name="Status"
                     defaultValue={modal.data?.Status || ""}
-                    className="border rounded w-full px-3 py-2"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                   >
                     <option value="">Pilih Status</option>
                     {getUniqueOptions("Status").map((opt) => (
@@ -998,11 +650,11 @@ export default function Devices() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-1">Pabrikan</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Pabrikan</label>
                   <select
                     name="Manufacturer"
                     defaultValue={modal.data?.Manufacturer || ""}
-                    className="border rounded w-full px-3 py-2"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                   >
                     <option value="">Pilih Pabrikan</option>
                     {getUniqueOptions("Manufacturer").map((opt) => (
@@ -1019,16 +671,17 @@ export default function Devices() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-1">Nomor Serial</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nomor Serial</label>
                   <input
                     name="SerialNumber"
                     defaultValue={modal.data?.SerialNumber || ""}
-                    className="border rounded w-full px-3 py-2"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    placeholder="Masukkan nomor serial perangkat"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-1">Pengguna</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ID Pengguna</label>
                   <input
                     name="CurrentOwnerLookupId"
                     defaultValue={
@@ -1036,17 +689,17 @@ export default function Devices() {
                         ? String(modal.data.CurrentOwnerLookupId)
                         : ""
                     }
-                    className="border rounded w-full px-3 py-2"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                     placeholder="ID user (angka) untuk lookup"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-1">Departemen</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Departemen</label>
                   <select
                     name="Divisi"
                     defaultValue={modal.data?.Divisi || ""}
-                    className="border rounded w-full px-3 py-2"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                   >
                     <option value="">Pilih Departemen</option>
                     {getUniqueOptions("Divisi").map((opt) => (
@@ -1057,21 +710,25 @@ export default function Devices() {
                   </select>
                 </div>
 
-                <div className="flex items-center gap-2 mt-6 sm:mt-0">
-                  <input
-                    name="AntiVirus"
-                    type="checkbox"
-                    defaultChecked={!!modal.data?.AntiVirus}
-                    className="h-5 w-5"
-                  />
-                  <label className="text-sm font-semibold">Antivirus</label>
+                <div className="flex items-center mt-6">
+                  <div className="flex items-center h-5">
+                    <input
+                      name="AntiVirus"
+                      type="checkbox"
+                      defaultChecked={!!modal.data?.AntiVirus}
+                      className="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="ml-3 text-sm">
+                    <label className="font-medium text-gray-700">Antivirus Terpasang</label>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex gap-2 mt-6 justify-end">
+              <div className="flex gap-3 mt-8 justify-end">
                 <button
                   type="button"
-                  className="px-4 py-2 rounded bg-gray-200"
+                  className="px-5 py-2.5 rounded-lg bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition"
                   onClick={() => {
                     setModal({ open: false, mode: "", data: {} });
                     resetPhoto();
@@ -1081,10 +738,18 @@ export default function Devices() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded bg-blue-600 text-white font-bold disabled:opacity-60"
+                  className="px-6 py-2.5 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition disabled:opacity-60 flex items-center"
                   disabled={loading}
                 >
-                  {modal.mode === "edit" ? "Simpan" : "Tambah"}
+                  {loading ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Menyimpan...
+                    </>
+                  ) : modal.mode === "edit" ? "Simpan Perubahan" : "Tambah Device"}
                 </button>
               </div>
             </form>
@@ -1092,161 +757,230 @@ export default function Devices() {
         </div>
       )}
 
-      <div className="relative z-10 w-full flex flex-col items-center">
-        <div className="bg-white/95 dark:bg-gray-800/90 rounded-2xl p-10 w-full max-w-[95vw] shadow-xl mt-8">
-          <div className="flex flex-wrap justify-between items-center mb-5 gap-2">
-            <h2 className="text-3xl font-bold mb-2 text-[#215ba6] dark:text-white">
-              Devices
-            </h2>
+      <div className="max-w-7xl mx-auto w-full">
+        <div className="bg-white rounded-xl shadow-lg p-6 md:p-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800">Manajemen Perangkat</h1>
+              <p className="text-gray-600 mt-1">Kelola data perangkat IT perusahaan</p>
+            </div>
 
-            {/* Tombol Print */}
-            <div className="flex flex-wrap items-center mb-6 gap-3">
-              {/* ... select2 & Refresh & Tambah ... */}
-
+            <div className="flex flex-wrap gap-3">
               <button
-                className="px-4 py-2 rounded border border-gray-300 hover:bg-gray-100"
-                onClick={handlePrintFiltered}
+                className="px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition flex items-center"
+                onClick={() => handlePrint(false)}
               >
-                Print (Filter)
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m4 4h6a2 2 0 002-2v-4a2 2 0 00-2-2h-6a2 2 0 00-2 2v4a2 2 0 002 2z" />
+                </svg>
+                Cetak (Filter)
               </button>
 
               <button
-                className="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white"
-                onClick={handlePrintAll}
+                className="px-4 py-2.5 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition flex items-center"
+                onClick={() => handlePrint(true)}
               >
-                Print (Semua)
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m4 4h6a2 2 0 002-2v-4a2 2 0 00-2-2h-6a2 2 0 00-2 2v4a2 2 0 002 2z" />
+                </svg>
+                Cetak (Semua)
               </button>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center mb-6 gap-3">
-            <select
-              className="px-3 py-2 rounded border border-gray-300 dark:bg-gray-700 dark:text-white"
-              value={filter.Status}
-              onChange={(e) => setFilter((f) => ({ ...f, Status: e.target.value }))}
-            >
-              <option value="">All Status</option>
-              {getUniqueOptions("Status").map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
-            <select
-              className="px-3 py-2 rounded border border-gray-300 dark:bg-gray-700 dark:text-white"
-              value={filter.Model}
-              onChange={(e) => setFilter((f) => ({ ...f, Model: e.target.value }))}
-            >
-              <option value="">All Tipe</option>
-              {getUniqueOptions("Model").map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
-            <select
-              className="px-3 py-2 rounded border border-gray-300 dark:bg-gray-700 dark:text-white"
-              value={filter.Divisi}
-              onChange={(e) => setFilter((f) => ({ ...f, Divisi: e.target.value }))}
-            >
-              <option value="">All Departemen</option>
-              {getUniqueOptions("Divisi").map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
-            <button
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-              onClick={fetchData}
-              disabled={loading}
-            >
-              {loading ? "Loading..." : "Refresh"}
-            </button>
-            <button
-              className="px-5 py-2 rounded bg-cyan-600 hover:bg-cyan-700 text-white font-bold"
-              onClick={handleTambah}
-            >
-              + Tambah Data
-            </button>
+          <div className="flex flex-wrap items-center gap-4 mb-6">
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-gray-700 mb-1">Status</label>
+              <select
+                className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                value={filter.Status}
+                onChange={(e) => setFilter((f) => ({ ...f, Status: e.target.value }))}
+              >
+                <option value="">Semua Status</option>
+                {getUniqueOptions("Status").map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-gray-700 mb-1">Tipe</label>
+              <select
+                className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                value={filter.Model}
+                onChange={(e) => setFilter((f) => ({ ...f, Model: e.target.value }))}
+              >
+                <option value="">Semua Tipe</option>
+                {getUniqueOptions("Model").map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-gray-700 mb-1">Departemen</label>
+              <select
+                className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                value={filter.Divisi}
+                onChange={(e) => setFilter((f) => ({ ...f, Divisi: e.target.value }))}
+              >
+                <option value="">Semua Departemen</option>
+                {getUniqueOptions("Divisi").map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="flex items-end gap-3">
+              <button
+                className="px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition flex items-center"
+                onClick={fetchData}
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Memuat...
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Refresh
+                  </>
+                )}
+              </button>
+              
+              <button
+                className="px-5 py-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition flex items-center"
+                onClick={handleTambah}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Tambah Data
+              </button>
+            </div>
           </div>
 
-          <div className="overflow-x-auto bg-white/95 dark:bg-gray-900/90 rounded-xl shadow min-h-[350px]">
-            <table className="min-w-full w-full text-base table-auto">
-              <thead>
-                <tr className="bg-blue-50 dark:bg-gray-800 text-[#215ba6] dark:text-white text-lg">
+          <div className="overflow-x-auto rounded-lg shadow border border-gray-200">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
                   {FIELDS.map((field) => (
-                    <th key={field.key} className="px-5 py-4 text-left">
+                    <th key={field.key} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       {field.name}
                     </th>
                   ))}
-                  <th className="px-5 py-4 text-left sm:text-right">Aksi</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Aksi
+                  </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="bg-white divide-y divide-gray-200">
                 {loading ? (
                   <tr>
                     <td
                       colSpan={FIELDS.length + 1}
-                      className="px-5 py-10 text-center text-gray-400"
+                      className="px-6 py-12 text-center text-gray-500"
                     >
-                      Loading data...
+                      <div className="flex justify-center items-center">
+                        <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      </div>
+                      <p className="mt-2">Memuat data perangkat...</p>
                     </td>
                   </tr>
                 ) : getFiltered().length === 0 ? (
                   <tr>
                     <td
                       colSpan={FIELDS.length + 1}
-                      className="px-5 py-10 text-center text-gray-400"
+                      className="px-6 py-12 text-center text-gray-500"
                     >
-                      Data tidak ditemukan.
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <p className="mt-2 text-lg font-medium">Data tidak ditemukan</p>
+                      <p className="mt-1">Coba ubah filter atau tambah data baru</p>
                     </td>
                   </tr>
                 ) : (
                   getFiltered().map((item, i) => (
                     <tr
                       key={item.id || i}
-                      className={`cursor-pointer ${
+                      className={`hover:bg-gray-50 cursor-pointer ${
                         selectedRow && selectedRow.id === item.id
-                          ? "bg-purple-200 font-bold"
-                          : i % 2 === 1
-                          ? "bg-blue-50/60 dark:bg-gray-800/60"
+                          ? "bg-blue-50"
                           : ""
                       }`}
                       onClick={() => setSelectedRow(item)}
                     >
-                      <td className="px-5 py-3 text-gray-800 dark:text-gray-100">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         {renderPhoto(item.fields)}
                       </td>
-                      <td className="px-5 py-3 text-gray-800 dark:text-gray-100">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {item.fields?.Title ?? ""}
                       </td>
-                      <td className="px-5 py-3 text-gray-800 dark:text-gray-100">
-                        {item.fields?.Status ?? ""}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          item.fields?.Status === "TERSEDIA" 
+                            ? "bg-green-100 text-green-800" 
+                            : item.fields?.Status === "DIPAKAI"
+                            ? "bg-blue-100 text-blue-800"
+                            : item.fields?.Status === "PERBAIKAN"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}>
+                          {item.fields?.Status ?? ""}
+                        </span>
                       </td>
-                      <td className="px-5 py-3 text-gray-800 dark:text-gray-100">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {item.fields?.Model ?? ""}
                       </td>
-                      <td className="px-5 py-3 text-gray-800 dark:text-gray-100">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {item.fields?.Manufacturer ?? ""}
                       </td>
-                      <td className="px-5 py-3 text-gray-800 dark:text-gray-100">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {item.fields?.SerialNumber ?? ""}
                       </td>
-                      <td className="px-5 py-3 text-gray-800 dark:text-gray-100">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {renderPengguna(item.fields)}
                       </td>
-                      <td className="px-5 py-3 text-gray-800 dark:text-gray-100">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {item.fields?.Divisi ?? ""}
                       </td>
-                      <td className="px-5 py-3 text-gray-800 dark:text-gray-100">
-                        {item.fields?.AntiVirus ? <span className="text-xl">✔️</span> : ""}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {item.fields?.AntiVirus ? (
+                          <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-green-100">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-gray-100">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                          </span>
+                        )}
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         {selectedRow && selectedRow.id === item.id ? (
-                          <div className="flex gap-2 justify-start sm:justify-end">
+                          <div className="flex justify-end space-x-2">
                             <button
-                              className="px-4 py-1.5 rounded bg-yellow-500 hover:bg-yellow-600 text-black"
+                              className="text-indigo-600 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-md transition"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleEdit();
@@ -1255,7 +989,7 @@ export default function Devices() {
                               Edit
                             </button>
                             <button
-                              className="px-4 py-1.5 rounded bg-red-600 hover:bg-red-700 text-white"
+                              className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-md transition"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDelete();
@@ -1272,6 +1006,12 @@ export default function Devices() {
               </tbody>
             </table>
           </div>
+
+          {getFiltered().length > 0 && !loading && (
+            <div className="mt-4 text-sm text-gray-500">
+              Menampilkan {getFiltered().length} dari {data.length} perangkat
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1286,12 +1026,15 @@ function OldPhotoPreview({ meta, fields }) {
     if (fields?.id && obj?.fileName) {
       const url = `${REST_URL}/Lists/Devices/Attachments/${fields.id}/${obj.fileName}`;
       return (
-        <div className="mt-3">
+        <div className="relative">
           <img
             src={url}
             alt="current"
-            className="h-20 w-20 object-cover rounded-lg border"
+            className="h-32 w-32 object-cover rounded-lg border shadow"
           />
+          <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center rounded-lg opacity-0 hover:opacity-100 transition-opacity">
+            <span className="text-white text-sm font-medium">Foto Saat Ini</span>
+          </div>
         </div>
       );
     }

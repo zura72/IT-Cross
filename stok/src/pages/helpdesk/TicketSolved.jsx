@@ -75,63 +75,63 @@ function toPerson(v) {
 function mapSpItem(item){
   const f = item.fields || {};
 
-  // Debug: Lihat semua field yang tersedia untuk analisis
-  console.log("=== DEBUG: Semua Field dari SharePoint ===");
-  Object.keys(f).forEach(key => {
-    console.log(`Field: ${key} =`, f[key]);
-  });
-  console.log("==========================================");
-
+  // Debug: Lihat struktur lengkap item
+  console.log("=== DEBUG: Struktur Lengkap Item ===");
+  console.log("Item:", item);
+  console.log("Fields:", f);
+  
   // ===== User Requestor (People) - PERBAIKAN KHUSUS =====
   let userReq = null;
   
-  // Coba berbagai kemungkinan nama field untuk User Requestor
-  // Termasuk kemungkinan field yang di-expand secara khusus
-  if (f.UserRequestor && typeof f.UserRequestor === 'object' && f.UserRequestor.displayName) {
-    userReq = f.UserRequestor;
-  } else if (f.User_x0020_Requestor && typeof f.User_x0020_Requestor === 'object' && f.User_x0020_Requestor.displayName) {
-    userReq = f.User_x0020_Requestor;
-  } else if (f["User Requestor"] && typeof f["User Requestor"] === 'object' && f["User Requestor"].displayName) {
-    userReq = f["User Requestor"];
-  } else if (f.RequestedBy && typeof f.RequestedBy === 'object' && f.RequestedBy.displayName) {
-    userReq = f.RequestedBy;
-  } else if (f.Requestor && typeof f.Requestor === 'object' && f.Requestor.displayName) {
-    userReq = f.Requestor;
-  } else if (f.Pemohon && typeof f.Pemohon === 'object' && f.Pemohon.displayName) {
-    userReq = f.Pemohon;
-  } 
-  // Coba juga jika field berupa string (LookupId atau email)
-  else if (typeof f.UserRequestor === 'string' && f.UserRequestor) {
-    userReq = toPerson(f.UserRequestor);
-  } else if (typeof f.User_x0020_Requestor === 'string' && f.User_x0020_Requestor) {
-    userReq = toPerson(f.User_x0020_Requestor);
-  } else if (typeof f["User Requestor"] === 'string' && f["User Requestor"]) {
-    userReq = toPerson(f["User Requestor"]);
-  } else if (typeof f.RequestedBy === 'string' && f.RequestedBy) {
-    userReq = toPerson(f.RequestedBy);
-  } else if (typeof f.Requestor === 'string' && f.Requestor) {
-    userReq = toPerson(f.Requestor);
-  } else if (typeof f.Pemohon === 'string' && f.Pemohon) {
-    userReq = toPerson(f.Pemohon);
+  // Prioritaskan field-field yang mungkin berisi User Requestor
+  // TERBARU: Tambahkan createdBy berdasarkan struktur yang ditemukan
+  const fieldPriority = [
+    'UserRequestor', 'User_x0020_Requestor', 'RequestedBy', 
+    'Requestor', 'Pemohon', 'Author', 'CreatedBy'
+  ];
+  
+  for (const fieldName of fieldPriority) {
+    if (f[fieldName]) {
+      if (typeof f[fieldName] === 'object') {
+        // Jika berupa object (People field yang sudah di-expand)
+        // PERBAIKAN: Handle createdBy.user structure
+        if (fieldName === 'CreatedBy' && f[fieldName].user) {
+          userReq = {
+            displayName: f[fieldName].user.displayName || '',
+            email: f[fieldName].user.email || ''
+          };
+        } else {
+          userReq = {
+            displayName: f[fieldName].Title || f[fieldName].displayName || f[fieldName].Name || '',
+            email: f[fieldName].EMail || f[fieldName].Email || f[fieldName].mail || ''
+          };
+        }
+        if (userReq.displayName) break;
+      } else if (typeof f[fieldName] === 'string') {
+        // Jika berupa string (LookupId atau email)
+        userReq = toPerson(f[fieldName]);
+        if (userReq.displayName) break;
+      }
+    }
   }
 
   // ===== Pelaksana (People atau text) =====
   let assigned = null;
+  const executorFields = ['Assignedto0', 'AssignedTo', 'Pelaksana', 'Executor'];
   
-  if (f.Assignedto0 && typeof f.Assignedto0 === 'object' && f.Assignedto0.displayName) {
-    assigned = f.Assignedto0;
-  } else if (f.AssignedTo && typeof f.AssignedTo === 'object' && f.AssignedTo.displayName) {
-    assigned = f.AssignedTo;
-  } else if (f.Pelaksana && typeof f.Pelaksana === 'object' && f.Pelaksana.displayName) {
-    assigned = f.Pelaksana;
-  } 
-  // Coba juga jika field berupa string
-  else if (typeof f.Assignedto0 === 'string' && f.Assignedto0) {
-    assigned = toPerson(f.Assignedto0);
-  } else if (typeof f.AssignedTo === 'string' && f.AssignedTo) {
-    assigned = toPerson(f.AssignedTo);
-  } else if (typeof f.Pelaksana === 'string' && f.Pelaksana) {
-    assigned = toPerson(f.Pelaksana);
+  for (const fieldName of executorFields) {
+    if (f[fieldName]) {
+      if (typeof f[fieldName] === 'object') {
+        assigned = {
+          displayName: f[fieldName].Title || f[fieldName].displayName || f[fieldName].Name || '',
+          email: f[fieldName].EMail || f[fieldName].Email || f[fieldName].mail || ''
+        };
+        if (assigned.displayName) break;
+      } else if (typeof f[fieldName] === 'string') {
+        assigned = toPerson(f[fieldName]);
+        if (assigned.displayName) break;
+      }
+    }
   }
 
   // fallback kalau hanya text Issueloggedby
@@ -140,21 +140,18 @@ function mapSpItem(item){
   return {
     spId: item.id,
     Title: f.Title || "",
-    TicketNumber: f.TicketNumber || f.ID,
+    TicketNumber: f.TicketNumber || item.id,
     Description: f.Description || "",
     Priority: f.Priority || "Normal",
     Status: f.Status || "",
     Divisi: f.Divisi || "Umum",
     DateReported: f.DateReported || f.Created || "",
     DateFinished: f.DateFinished || "",
-
-    UserRequestor: userReq || null,     // People
-    Assignedto0: executor || null,      // People (or synthesized from Issueloggedby)
-
+    UserRequestor: userReq,     // People
+    Assignedto0: executor,      // People (or synthesized from Issueloggedby)
     TipeTicket: f.TipeTicket || "",
     Issueloggedby: f.Issueloggedby || "",
     Author: toPerson(f.Author) || null,
-
     [DONE_PHOTO_FIELD]: f[DONE_PHOTO_FIELD] || "",
     HasAttachments: !!f.Attachments,
   };
@@ -171,7 +168,6 @@ function buildFieldsPayload(src){
     DateReported: src.DateReported || undefined,
     DateFinished: src.DateFinished || undefined,
     TipeTicket: src.TipeTicket || undefined,
-    // NOTE: People field idealnya kirim lookupId (claims), tapi untuk simple PATCH biarkan string/displayName dulu.
     Assignedto0: src.Assignedto0 || undefined,
     Issueloggedby: src.Issueloggedby || undefined,
   };
