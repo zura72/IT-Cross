@@ -274,12 +274,12 @@ app.post("/api/notify/email", mailLimiter, async (req, res) => {
 });
 
 // Export for Vercel
-export default app;
+export const handler = serverless(app);
 
-// Run local
-if (!process.env.VERCEL) {
+// supaya di dev lokal masih bisa jalan:
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 4000;
   app.listen(PORT, () => {
-    console.log(`WKI server running on ${PUBLIC_BASE_URL}`);
-    console.log(`Upload directory: ${UPLOAD_DIR}`);
+    console.log(`Local server running at http://localhost:${PORT}`);
   });
 }
