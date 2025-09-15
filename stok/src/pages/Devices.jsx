@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMsal } from "@azure/msal-react";
-import { useTheme } from "../context/ThemeContext"; // Pastikan path ini sesuai
+import { useTheme } from "../context/ThemeContext";
 
 /** ====== KONFIG ====== */
 const siteId =
@@ -12,10 +12,24 @@ const SHAREPOINT_SCOPE = ["https://waskitainfra.sharepoint.com/.default"];
 
 const PHOTO_FIELD_INTERNAL_NAME = "DevicePhoto";
 
-/** ====== KOMPONEN ====== */
+/** ====== CSS untuk Print ====== */
+const PRINT_CSS = `
+  * { box-sizing: border-box; }
+  body { font: 12px/1.45 'Inter', Arial, sans-serif; color: #111; margin: 24px; }
+  h1 { margin: 0 0 4px; font-size: 20px; }
+  .meta { color:#555; margin: 0 0 14px; font-size: 11px; }
+  table { width: 100%; border-collapse: collapse; border: 1.5pt solid #000; }
+  th, td { border: 0.9pt solid #000; padding: 6px 8px; vertical-align: top; }
+  thead th { background: #eef4ff; text-align: left; border: 1.2pt solid #000; }
+  tbody tr:nth-child(even) { background: #fbfdff; }
+  .img { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border:0.9pt solid #000; }
+  .check { font-size: 16px; }
+  @page { margin: 16mm; }
+`;
+
 export default function Devices() {
   const { instance, accounts } = useMsal();
-  const { dark } = useTheme(); // Menggunakan theme context dari sidebar
+  const { dark } = useTheme();
 
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -23,9 +37,7 @@ export default function Devices() {
   const [userMap, setUserMap] = useState({});
   const [notif, setNotif] = useState("");
   const [filter, setFilter] = useState({ Status: "", Model: "", Divisi: "" });
-
   const [modal, setModal] = useState({ open: false, mode: "", data: {} });
-
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState("");
   const fileInputRef = useRef(null);
@@ -180,110 +192,157 @@ export default function Devices() {
     return userMap[id] || id;
   }
 
-  /** ====== PRINT helpers ====== */
-  const esc = (v) =>
-    String(v ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;");
+  /** ====== PRINT dengan IFRAME ====== */
+  // Ambil URL foto dari fields
+  function getPhotoUrlFromFields(fields) {
+    try {
+      let obj = fields?.[PHOTO_FIELD_INTERNAL_NAME];
+      if (typeof obj === "string") obj = JSON.parse(obj);
+      if (fields?.Attachments && obj?.fileName && fields?.id) {
+        return `${REST_URL}/Lists/Devices/Attachments/${fields.id}/${obj.fileName}`;
+      }
+    } catch {}
+    return "";
+  }
 
-  function buildPrintHTML(rows) {
-    const printedAt = new Date().toLocaleString();
+  // Buat HTML tabel untuk dicetak
+  function buildTableHTML(items) {
     const head = `
-      <meta charset=\"utf-8\" />
-      <title>Devices — Print</title>
-      <style>
-        /* Kertas & margin */
-        @page { size: A4 landscape; margin: 12mm; }
-        html, body { color:#000; font: 12px system-ui,-apple-system,Segoe UI,Roboto,sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        h1 { font-size: 18px; margin: 0 0 6px; }
-        .meta { font-size: 11px; margin: 0 0 12px; color:#555; }
-
-        /* Tabel dan border tebal */
-        table { width: 100%; border-collapse: collapse; border: 1.5pt solid #000; }
-        thead th { background: #f0f6ff; text-align: left; border: 1.2pt solid #000; }
-        th, td { padding: 6px 8px; vertical-align: top; }
-        tbody td { border: 0.9pt solid #000; }
-        tr { page-break-inside: avoid; }
-        thead { display: table-header-group; }
-        tfoot { display: table-row-group; }
-
-        td img { height: 48px; width: 64px; object-fit: cover; border-radius: 6px; border: 0.9pt solid #000; }
-        .center { text-align: center; }
-      </style>
+      <thead>
+        <tr>
+          ${FIELDS.map((f) => `<th>${f.name}</th>`).join("")}
+        </tr>
+      </thead>
     `;
 
-    const headerCells = FIELDS.map((f) => `<th>${esc(f.name)}</th>`).join("");
-
-    const rowsHtml = rows
-      .map((item) => {
-        const f = item.fields || {};
-        const foto = getPhotoUrl(f)
-          ? `<img src="${getPhotoUrl(f)}" alt="foto" />`
-          : "—";
-        const antivirus = f.AntiVirus ? "✔" : "";
-        const pengguna = f.CurrentOwnerLookupId
-          ? esc(userMap[f.CurrentOwnerLookupId] || f.CurrentOwnerLookupId)
-          : "";
-
-        const cells = [
-          foto,
-          esc(f.Title),
-          esc(f.Status),
-          esc(f.Model),
-          esc(f.Manufacturer),
-          esc(f.SerialNumber),
-          pengguna,
-          esc(f.Divisi),
-          antivirus,
-        ]
-          .map((v, idx) => (idx === 0 ? `<td class=\"center\">${v}</td>` : `<td>${v}</td>`))
-          .join("");
-
-        return `<tr>${cells}</tr>`;
+    const bodyRows = items
+      .map((it) => {
+        const f = it.fields || {};
+        const tds = FIELDS.map((col) => {
+          switch (col.key) {
+            case "Foto_x0020_Peralang": {
+              const url = getPhotoUrlFromFields(f);
+              return `<td>${url ? `<img class="img" src="${url}"/>` : ""}</td>`;
+            }
+            case "CurrentOwnerLookupId": {
+              const v = f.CurrentOwnerLookupId ? (userMap[f.CurrentOwnerLookupId] || f.CurrentOwnerLookupId) : "";
+              return `<td>${String(v ?? "")}</td>`;
+            }
+            case "AntiVirus": {
+              return `<td>${f.AntiVirus ? `<span class="check">✔️</span>` : ""}</td>`;
+            }
+            default: {
+              const v = f[col.key];
+              return `<td>${v != null ? String(v) : ""}</td>`;
+            }
+          }
+        }).join("");
+        return `<tr>${tds}</tr>`;
       })
       .join("");
 
-    return `
+    return `<table>${head}<tbody>${bodyRows}</tbody></table>`;
+  }
+
+  // Fungsi utama untuk mencetak menggunakan iframe
+  function printViaIframe(items, title = "Devices") {
+    const now = new Date();
+    const htmlDoc = `
       <!doctype html>
       <html>
-        <head>${head}</head>
+        <head>
+          <meta charset="utf-8"/>
+          <title>${title}</title>
+          <style>${PRINT_CSS}</style>
+        </head>
         <body>
-          <h1>Devices</h1>
+          <h1>${title}</h1>
           <div class="meta">
-            Total baris: ${rows.length} &nbsp;|&nbsp; Dicetak: ${esc(printedAt)}
+            Total baris: ${items.length} &middot; Dicetak: ${now.toLocaleString()}
           </div>
-          <table>
-            <thead><tr>${headerCells}</tr></thead>
-            <tbody>${rowsHtml}</tbody>
-          </table>
-          <script>
-            window.onload = function() {
-              window.focus();
-              window.print();
-              setTimeout(() => window.close(), 300);
-            };
-          </script>
+          ${buildTableHTML(items)}
         </body>
       </html>
     `;
+
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(htmlDoc);
+    doc.close();
+
+    // Tunggu gambar selesai dimuat sebelum mencetak
+    const waitForImages = () => {
+      const images = iframe.contentDocument.images;
+      let loadedCount = 0;
+      const totalImages = images.length;
+      
+      if (totalImages === 0) {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        setTimeout(() => document.body.removeChild(iframe), 1000);
+        return;
+      }
+      
+      Array.from(images).forEach(img => {
+        if (img.complete) {
+          loadedCount++;
+        } else {
+          img.onload = () => {
+            loadedCount++;
+            if (loadedCount === totalImages) {
+              iframe.contentWindow.focus();
+              iframe.contentWindow.print();
+              setTimeout(() => document.body.removeChild(iframe), 1000);
+            }
+          };
+          img.onerror = () => {
+            loadedCount++;
+            if (loadedCount === totalImages) {
+              iframe.contentWindow.focus();
+              iframe.contentWindow.print();
+              setTimeout(() => document.body.removeChild(iframe), 1000);
+            }
+          };
+        }
+      });
+      
+      // Fallback jika ada gambar yang tidak memicu event onload/onerror
+      setTimeout(() => {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        setTimeout(() => document.body.removeChild(iframe), 1000);
+      }, 3000);
+    };
+
+    iframe.onload = waitForImages;
   }
 
-  function handlePrint(all = false) {
-    const rows = all ? data : getFiltered();
-    if (!rows || rows.length === 0) {
+  // Handler untuk tombol cetak berdasarkan filter
+  function handlePrintFiltered() {
+    const filteredData = getFiltered();
+    if (filteredData.length === 0) {
+      alert("Tidak ada data untuk dicetak dengan filter saat ini.");
+      return;
+    }
+    printViaIframe(filteredData, "Devices (Sesuai Filter)");
+  }
+
+  // Handler untuk tombol cetak semua data
+  function handlePrintAll() {
+    if (data.length === 0) {
       alert("Tidak ada data untuk dicetak.");
       return;
     }
-    const html = buildPrintHTML(rows);
-    const w = window.open("", "_blank", "noopener,noreferrer");
-    if (!w) {
-      alert("Popup diblokir. Izinkan pop-up untuk mencetak.");
-      return;
-    }
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
+    printViaIframe(data.slice(), "Devices (Semua Data)");
   }
 
   /** ====== CRUD handlers ====== */
@@ -820,7 +879,7 @@ export default function Devices() {
                     ? 'bg-gray-700 text-white hover:bg-gray-600' 
                     : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
                 }`}
-                onClick={() => handlePrint(false)}
+                onClick={handlePrintFiltered}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m4 4h6a2 2 0 002-2v-4a2 2 0 00-2-2h-6a2 2 0 00-2 2v4a2 2 0 002 2z" />
@@ -830,7 +889,7 @@ export default function Devices() {
 
               <button
                 className="px-4 py-2.5 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition flex items-center"
-                onClick={() => handlePrint(true)}
+                onClick={handlePrintAll}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m4 4h6a2 2 0 002-2v-4a2 2 0 00-2-2h-6a2 2 0 00-2 2v4a2 2 0 002 2z" />

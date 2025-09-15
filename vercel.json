@@ -5,7 +5,7 @@
       "src": "server/index.js",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["server/**", "!server/node_modules/**"]
+        "includeFiles": ["server/**"]
       }
     },
     {
@@ -27,13 +27,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/server/index.js",
-      "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      "headers": {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With"
-      }
+      "dest": "/server/index.js"
     },
     {
       "src": "/uploads/(.*)",
@@ -60,10 +54,6 @@
 
     {
       "src": "/",
-      "dest": "/web/dist/index.html"
-    },
-    {
-      "src": "/(.*)",
       "dest": "/web/dist/index.html"
     }
   ],
