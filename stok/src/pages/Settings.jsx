@@ -17,7 +17,9 @@ import {
   FiGlobe,
   FiKey,
   FiEye,
-  FiEyeOff
+  FiEyeOff,
+  FiCopy,
+  FiCheck
 } from "react-icons/fi";
 
 // Ganti path gambar sesuai lokasi kamu!
@@ -29,6 +31,7 @@ export default function Settings() {
   const { isAdminLoggedIn, adminEmail, logoutAdmin, dark, toggleDarkMode } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState("account");
   const [showApiKey, setShowApiKey] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Data profil user
   let initials = "US", email = "user@email.com", name = "Admin";
@@ -57,70 +60,105 @@ export default function Settings() {
     }
   };
 
+  // Copy API Key
+  const copyApiKey = () => {
+    navigator.clipboard.writeText("wk1_4p1k3y_5ecur1ty");
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   // Tab konten
   const renderTabContent = () => {
     switch(activeTab) {
       case "account":
         return (
-          <div className="space-y-5">
+          <div className="space-y-6">
             <div className="flex flex-col items-center gap-2 mb-5">
-              <div className="w-24 h-24 bg-gradient-to-br from-[#b681ff] to-[#7159d4] rounded-full flex items-center justify-center shadow-lg mb-2 border-4 border-white dark:border-gray-900">
-                <span className="text-3xl text-white font-bold tracking-widest select-none">{initials}</span>
+              <div className="relative">
+                <div className="w-24 h-24 bg-gradient-to-br from-[#b681ff] to-[#7159d4] rounded-full flex items-center justify-center shadow-lg mb-2 border-4 border-white dark:border-gray-900">
+                  <span className="text-3xl text-white font-bold tracking-widest select-none">{initials}</span>
+                </div>
+                <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1.5 border-2 border-white dark:border-gray-900">
+                  <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                </div>
               </div>
-              <span className="text-lg font-semibold text-[#7159d4] dark:text-[#b681ff]">{name}</span>
-              <span className="text-sm text-gray-500 flex items-center gap-1">
+              <span className="text-lg font-semibold text-gray-800 dark:text-white">{name}</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
                 <FiMail className="inline text-base" />
                 {email}
               </span>
             </div>
             
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+              <div className="flex items-center justify-between p-4 bg-transparent border border-gray-200 dark:border-gray-700 rounded-xl">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-full">
-                    <FiUser className="text-blue-600 dark:text-blue-300" />
+                  <div className="p-2 bg-blue-500/10 rounded-full">
+                    <FiUser className="text-blue-500" />
                   </div>
                   <div>
-                    <p className="font-medium">Role</p>
+                    <p className="font-medium text-gray-800 dark:text-white">Role</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       {isAdminLoggedIn ? "Administrator" : "User"}
                     </p>
                   </div>
                 </div>
+                <span className="px-3 py-1 bg-blue-500/10 text-blue-500 text-xs font-medium rounded-full">
+                  {isAdminLoggedIn ? "Full Access" : "Standard"}
+                </span>
               </div>
               
-              <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+              <div className="flex items-center justify-between p-4 bg-transparent border border-gray-200 dark:border-gray-700 rounded-xl">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-green-100 dark:bg-green-900 rounded-full">
-                    <FiDatabase className="text-green-600 dark:text-green-300" />
+                  <div className="p-2 bg-green-500/10 rounded-full">
+                    <FiDatabase className="text-green-500" />
                   </div>
                   <div>
-                    <p className="font-medium">Status Akun</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Aktif</p>
+                    <p className="font-medium text-gray-800 dark:text-white">Status Akun</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Aktif dan Terverifikasi</p>
                   </div>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                  <span className="text-sm text-green-500">Online</span>
                 </div>
               </div>
               
-              <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-full">
-                    <FiKey className="text-purple-600 dark:text-purple-300" />
+              <div className="p-4 bg-transparent border border-gray-200 dark:border-gray-700 rounded-xl">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-500/10 rounded-full">
+                      <FiKey className="text-purple-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-800 dark:text-white">API Key</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Gunakan untuk integrasi sistem
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium">API Key</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
-                      {showApiKey ? "wk1_4p1k3y_5ecur1ty" : "••••••••••••••••"}
-                      <button 
-                        onClick={() => setShowApiKey(!showApiKey)}
-                        className="text-blue-500 hover:text-blue-700"
-                      >
-                        {showApiKey ? <FiEyeOff /> : <FiEye />}
-                      </button>
-                    </p>
-                  </div>
+                  <button 
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    className="text-gray-500 hover:text-purple-500 transition-colors"
+                  >
+                    {showApiKey ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                  </button>
                 </div>
+                
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-3 font-mono text-sm text-gray-800 dark:text-white">
+                    {showApiKey ? "wk1_4p1k3y_5ecur1ty" : "••••••••••••••••••••••"}
+                  </div>
+                  <button 
+                    onClick={copyApiKey}
+                    className="p-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-700 dark:text-gray-300"
+                    title="Salin API Key"
+                  >
+                    {copied ? <FiCheck className="text-green-500" /> : <FiCopy />}
+                  </button>
+                </div>
+                
                 <button className="text-sm text-blue-500 hover:text-blue-700 font-medium">
-                  Regenerate
+                  Regenerate Key
                 </button>
               </div>
             </div>
@@ -129,21 +167,21 @@ export default function Settings() {
       
       case "preferences":
         return (
-          <div className="space-y-5">
+          <div className="space-y-6">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Preferensi Aplikasi</h3>
             
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+              <div className="flex items-center justify-between p-4 bg-transparent border border-gray-200 dark:border-gray-700 rounded-xl">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full">
+                  <div className="p-2 bg-indigo-500/10 rounded-full">
                     {dark ? (
-                      <FiMoon className="text-indigo-600 dark:text-indigo-300" />
+                      <FiMoon className="text-indigo-500" />
                     ) : (
                       <FiSun className="text-yellow-500" />
                     )}
                   </div>
                   <div>
-                    <p className="font-medium">Mode Gelap</p>
+                    <p className="font-medium text-gray-800 dark:text-white">Mode Gelap</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       {dark ? "Diaktifkan" : "Dinonaktifkan"}
                     </p>
@@ -156,17 +194,17 @@ export default function Settings() {
                     checked={dark}
                     onChange={toggleDarkMode}
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                  <div className="w-12 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                 </label>
               </div>
               
-              <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+              <div className="flex items-center justify-between p-4 bg-transparent border border-gray-200 dark:border-gray-700 rounded-xl">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-full">
-                    <FiBell className="text-blue-600 dark:text-blue-300" />
+                  <div className="p-2 bg-blue-500/10 rounded-full">
+                    <FiBell className="text-blue-500" />
                   </div>
                   <div>
-                    <p className="font-medium">Notifikasi</p>
+                    <p className="font-medium text-gray-800 dark:text-white">Notifikasi</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       Email & push notification
                     </p>
@@ -174,23 +212,23 @@ export default function Settings() {
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" className="sr-only peer" defaultChecked />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                  <div className="w-12 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                 </label>
               </div>
               
-              <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+              <div className="flex items-center justify-between p-4 bg-transparent border border-gray-200 dark:border-gray-700 rounded-xl">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-green-100 dark:bg-green-900 rounded-full">
-                    <FiGlobe className="text-green-600 dark:text-green-300" />
+                  <div className="p-2 bg-green-500/10 rounded-full">
+                    <FiGlobe className="text-green-500" />
                   </div>
                   <div>
-                    <p className="font-medium">Bahasa</p>
+                    <p className="font-medium text-gray-800 dark:text-white">Bahasa</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Indonesia
+                      Pilih bahasa preferensi
                     </p>
                   </div>
                 </div>
-                <select className="text-sm bg-gray-100 dark:bg-gray-700 border-none rounded-md px-3 py-1">
+                <select className="text-sm bg-transparent border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-white rounded-lg px-3 py-1.5">
                   <option>Indonesia</option>
                   <option>English</option>
                 </select>
@@ -201,57 +239,57 @@ export default function Settings() {
       
       case "security":
         return (
-          <div className="space-y-5">
+          <div className="space-y-6">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Keamanan & Privasi</h3>
             
             <div className="space-y-4">
-              <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 bg-red-100 dark:bg-red-900 rounded-full">
-                    <FiShield className="text-red-600 dark:text-red-300" />
+              <div className="p-5 bg-transparent border border-gray-200 dark:border-gray-700 rounded-xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-red-500/10 rounded-full">
+                    <FiShield className="text-red-500" />
                   </div>
                   <div>
-                    <p className="font-medium">Autentikasi Dua Faktor</p>
+                    <p className="font-medium text-gray-800 dark:text-white">Autentikasi Dua Faktor</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       Tambahkan lapisan keamanan ekstra
                     </p>
                   </div>
                 </div>
-                <button className="w-full py-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-300 rounded-md font-medium hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors">
+                <button className="w-full py-2.5 bg-red-500/10 text-red-500 rounded-lg font-medium hover:bg-red-500/20 transition-colors">
                   Aktifkan 2FA
                 </button>
               </div>
               
-              <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-full">
-                    <FiKey className="text-blue-600 dark:text-blue-300" />
+              <div className="p-5 bg-transparent border border-gray-200 dark:border-gray-700 rounded-xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-blue-500/10 rounded-full">
+                    <FiKey className="text-blue-500" />
                   </div>
                   <div>
-                    <p className="font-medium">Sesi Aktif</p>
+                    <p className="font-medium text-gray-800 dark:text-white">Sesi Aktif</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       1 perangkat aktif
                     </p>
                   </div>
                 </div>
-                <button className="w-full py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 rounded-md font-medium hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors">
+                <button className="w-full py-2.5 bg-blue-500/10 text-blue-500 rounded-lg font-medium hover:bg-blue-500/20 transition-colors">
                   Kelola Sesi
                 </button>
               </div>
               
-              <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-full">
-                    <FiDatabase className="text-purple-600 dark:text-purple-300" />
+              <div className="p-5 bg-transparent border border-gray-200 dark:border-gray-700 rounded-xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-purple-500/10 rounded-full">
+                    <FiDatabase className="text-purple-500" />
                   </div>
                   <div>
-                    <p className="font-medium">Data & Privasi</p>
+                    <p className="font-medium text-gray-800 dark:text-white">Data & Privasi</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       Kelola data pribadi Anda
                     </p>
                   </div>
                 </div>
-                <button className="w-full py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300 rounded-md font-medium hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors">
+                <button className="w-full py-2.5 bg-purple-500/10 text-purple-500 rounded-lg font-medium hover:bg-purple-500/20 transition-colors">
                   Unduh Data
                 </button>
               </div>
@@ -261,7 +299,7 @@ export default function Settings() {
       
       case "billing":
         return (
-          <div className="space-y-5">
+          <div className="space-y-6">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Langganan & Tagihan</h3>
             
             <div className="p-5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl">
@@ -284,19 +322,19 @@ export default function Settings() {
             <div className="space-y-3">
               <h4 className="font-medium text-gray-700 dark:text-gray-300">Metode Pembayaran</h4>
               
-              <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+              <div className="flex items-center justify-between p-4 bg-transparent border border-gray-200 dark:border-gray-700 rounded-xl">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-full">
-                    <FiCreditCard className="text-blue-600 dark:text-blue-300" />
+                  <div className="p-2 bg-blue-500/10 rounded-full">
+                    <FiCreditCard className="text-blue-500" />
                   </div>
                   <div>
-                    <p className="font-medium">Kartu Kredit</p>
+                    <p className="font-medium text-gray-800 dark:text-white">Kartu Kredit</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       •••• •••• •••• 1234
                     </p>
                   </div>
                 </div>
-                <span className="text-sm text-green-600 font-medium">Utama</span>
+                <span className="text-sm text-green-500 font-medium">Utama</span>
               </div>
               
               <button className="w-full py-3 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors flex items-center justify-center gap-2">
@@ -309,56 +347,56 @@ export default function Settings() {
       
       case "support":
         return (
-          <div className="space-y-5">
+          <div className="space-y-6">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Bantuan & Dukungan</h3>
             
             <div className="space-y-4">
-              <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-full">
-                    <FiHelpCircle className="text-blue-600 dark:text-blue-300" />
+              <div className="p-5 bg-transparent border border-gray-200 dark:border-gray-700 rounded-xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-blue-500/10 rounded-full">
+                    <FiHelpCircle className="text-blue-500" />
                   </div>
                   <div>
-                    <p className="font-medium">Pusat Bantuan</p>
+                    <p className="font-medium text-gray-800 dark:text-white">Pusat Bantuan</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       Temukan jawaban untuk pertanyaan umum
                     </p>
                   </div>
                 </div>
-                <button className="w-full py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 rounded-md font-medium hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors">
+                <button className="w-full py-2.5 bg-blue-500/10 text-blue-500 rounded-lg font-medium hover:bg-blue-500/20 transition-colors">
                   Kunjungi Pusat Bantuan
                 </button>
               </div>
               
-              <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 bg-green-100 dark:bg-green-900 rounded-full">
-                    <FiMail className="text-green-600 dark:text-green-300" />
+              <div className="p-5 bg-transparent border border-gray-200 dark:border-gray-700 rounded-xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-green-500/10 rounded-full">
+                    <FiMail className="text-green-500" />
                   </div>
                   <div>
-                    <p className="font-medium">Hubungi Dukungan</p>
+                    <p className="font-medium text-gray-800 dark:text-white">Hubungi Dukungan</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       Tim kami siap membantu 24/7
                     </p>
                   </div>
                 </div>
-                <button className="w-full py-2 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-300 rounded-md font-medium hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors">
+                <button className="w-full py-2.5 bg-green-500/10 text-green-500 rounded-lg font-medium hover:bg-green-500/20 transition-colors">
                   Kirim Tiket Dukungan
                 </button>
               </div>
               
-              <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-full">
-                    <FiSettings className="text-purple-600 dark:text-purple-300" />
+              <div className="p-5 bg-transparent border border-gray-200 dark:border-gray-700 rounded-xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-purple-500/10 rounded-full">
+                    <FiSettings className="text-purple-500" />
                   </div>
                   <div>
-                    <p className="font-medium">Informasi Aplikasi</p>
+                    <p className="font-medium text-gray-800 dark:text-white">Informasi Aplikasi</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Versi: <span className="font-medium">1.0.0</span>
+                      Versi: <span className="font-medium text-gray-800 dark:text-white">1.0.0</span>
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Build: <span className="font-medium">{new Date().toISOString().split("T")[0]}</span>
+                      Build: <span className="font-medium text-gray-800 dark:text-white">{new Date().toISOString().split("T")[0]}</span>
                     </p>
                   </div>
                 </div>
@@ -366,7 +404,7 @@ export default function Settings() {
                   Support:
                   <a
                     href="mailto:wiqolby@gmail.com"
-                    className="ml-1 text-blue-500 underline hover:text-blue-700"
+                    className="ml-1 text-blue-500 hover:text-blue-700"
                   >
                     wiqolby@gmail.com
                   </a>
@@ -399,7 +437,7 @@ export default function Settings() {
         <div className="backdrop-blur-lg bg-white/70 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 shadow-2xl rounded-3xl p-6 w-full">
           <div className="flex flex-col md:flex-row gap-6">
             {/* Sidebar Navigasi */}
-            <div className="md:w-1/4 bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
+            <div className="md:w-1/4 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-2xl p-4 border border-gray-200 dark:border-gray-700">
               <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
                 <FiSettings className="text-[#7159d4] dark:text-[#b681ff]" />
                 Pengaturan
@@ -418,8 +456,8 @@ export default function Settings() {
                     onClick={() => setActiveTab(item.id)}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors ${
                       activeTab === item.id
-                        ? "bg-[#7159d4] text-white"
-                        : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        ? "bg-gradient-to-r from-[#7159d4] to-[#b681ff] text-white shadow-md"
+                        : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50"
                     }`}
                   >
                     {item.icon}
@@ -438,7 +476,7 @@ export default function Settings() {
             </div>
             
             {/* Konten Utama */}
-            <div className="md:w-3/4 bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
+            <div className="md:w-3/4 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700">
               {renderTabContent()}
             </div>
           </div>
