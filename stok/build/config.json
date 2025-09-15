@@ -1,0 +1,13 @@
+{
+  "apiBase": "/api",
+  "adminEmails": [
+    "adminapp@waskitainfrastruktur.co.id",
+    "your.name@waskitainfrastruktur.co.id"
+  ],
+  "msal": {
+    "clientId": "YOUR-AZURE-APP-CLIENT-ID",
+    "authority": "https://login.microsoftonline.com/YOUR_TENANT_ID",
+    "redirectUri": "http://localhost:8080",
+    "postLogoutRedirectUri": "http://localhost:8080"
+  }
+}

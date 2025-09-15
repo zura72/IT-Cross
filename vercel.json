@@ -19,14 +19,15 @@
       "src": "stok/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist"
+        "distDir": "build"
       }
     }
   ],
+
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "server/index.js",
+      "dest": "/server/index.js",
       "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       "headers": {
         "Access-Control-Allow-Origin": "*",
@@ -36,7 +37,7 @@
     },
     {
       "src": "/uploads/(.*)",
-      "dest": "server/index.js"
+      "dest": "/server/index.js"
     },
 
     {
@@ -50,11 +51,11 @@
 
     {
       "src": "/stok/(.*)",
-      "dest": "/stok/dist/$1"
+      "dest": "/stok/build/$1"
     },
     {
       "src": "/stok",
-      "dest": "/stok/dist/index.html"
+      "dest": "/stok/build/index.html"
     },
 
     {
@@ -66,6 +67,7 @@
       "dest": "/web/dist/index.html"
     }
   ],
+
   "env": {
     "NODE_ENV": "production"
   }
