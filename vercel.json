@@ -5,25 +5,24 @@
       "src": "server/index.js",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["server/**"]
+        "includeFiles": ["server/**", "!server/node_modules/**"]
       }
     },
     {
       "src": "web/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist"
+        "distDir": "web/dist"
       }
     },
     {
       "src": "stok/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "build"
+        "distDir": "stok/build"
       }
     }
   ],
-
   "routes": [
     {
       "src": "/api/(.*)",
@@ -34,30 +33,15 @@
       "dest": "/server/index.js"
     },
 
-    {
-      "src": "/web/(.*)",
-      "dest": "/web/dist/$1"
-    },
-    {
-      "src": "/web",
-      "dest": "/web/dist/index.html"
-    },
+    { "src": "/web/(.*)", "dest": "web/dist/$1" },
+    { "src": "/web", "dest": "web/dist/index.html" },
 
-    {
-      "src": "/stok/(.*)",
-      "dest": "/stok/build/$1"
-    },
-    {
-      "src": "/stok",
-      "dest": "/stok/build/index.html"
-    },
+    { "src": "/stok/(.*)", "dest": "stok/build/$1" },
+    { "src": "/stok", "dest": "stok/build/index.html" },
 
-    {
-      "src": "/",
-      "dest": "/web/dist/index.html"
-    }
+    { "src": "/", "dest": "web/dist/index.html" },
+    { "src": "/(.*)", "dest": "web/dist/index.html" }
   ],
-
   "env": {
     "NODE_ENV": "production"
   }
