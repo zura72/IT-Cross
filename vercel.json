@@ -38,7 +38,7 @@
       "src": "/uploads/(.*)",
       "dest": "/server/index.js"
     },
-    
+
     {
       "src": "/web/(.*)",
       "dest": "/web/dist/$1"
@@ -47,7 +47,7 @@
       "src": "/web",
       "dest": "/web/dist/index.html"
     },
-    
+
     {
       "src": "/stok/(.*)",
       "dest": "/stok/dist/$1"
@@ -56,23 +56,17 @@
       "src": "/stok",
       "dest": "/stok/dist/index.html"
     },
-    
+
     {
       "src": "/",
       "dest": "/web/dist/index.html"
     },
-   
+
     {
       "src": "/(.*)",
       "dest": "/web/dist/index.html"
     }
   ],
-  "functions": {
-    "server/index.js": {
-      "maxDuration": 30,
-      "memory": 1024
-    }
-  },
   "env": {
     "NODE_ENV": "production"
   }
