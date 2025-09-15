@@ -23,5 +23,8 @@
     "http-proxy-middleware": "^3.0.5",
     "msw": "^2.11.1",
     "wait-on": "7.2.0"
+  },
+  "dependencies": {
+    "styled-jsx": "^5.1.7"
   }
 }
