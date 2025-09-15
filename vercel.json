@@ -3,23 +3,20 @@
   "builds": [
     {
       "src": "server/index.js",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": ["server/**", "!server/node_modules/**"]
-      }
+      "use": "@vercel/node"
     },
     {
       "src": "web/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "web/dist"
+        "distDir": "dist"
       }
     },
     {
       "src": "stok/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "stok/build"
+        "distDir": "build"
       }
     }
   ],
@@ -32,15 +29,36 @@
       "src": "/uploads/(.*)",
       "dest": "/server/index.js"
     },
-
-    { "src": "/web/(.*)", "dest": "web/dist/$1" },
-    { "src": "/web", "dest": "web/dist/index.html" },
-
-    { "src": "/stok/(.*)", "dest": "stok/build/$1" },
-    { "src": "/stok", "dest": "stok/build/index.html" },
-
-    { "src": "/", "dest": "web/dist/index.html" },
-    { "src": "/(.*)", "dest": "web/dist/index.html" }
+    {
+      "src": "/web/(.*)",
+      "dest": "/web/$1"
+    },
+    {
+      "src": "/stok/(.*)",
+      "dest": "/stok/$1"
+    },
+    {
+      "src": "/web",
+      "status": 301,
+      "headers": {
+        "Location": "/web/"
+      }
+    },
+    {
+      "src": "/stok",
+      "status": 301,
+      "headers": {
+        "Location": "/stok/"
+      }
+    },
+    {
+      "src": "/",
+      "dest": "/web/index.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/web/$1"
+    }
   ],
   "env": {
     "NODE_ENV": "production"

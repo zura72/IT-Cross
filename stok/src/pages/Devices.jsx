@@ -41,12 +41,13 @@ export default function Devices() {
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState("");
   const fileInputRef = useRef(null);
+  const tableContainerRef = useRef(null);
 
   /** ====== Field Mapping untuk tabel & form ====== */
   const FIELDS = useMemo(
     () => [
       { name: "Foto", key: "Foto_x0020_Peralang" },
-      { name: "Title", key: "Title" },
+      { name: "Nama Perangkat", key: "Title" },
       { name: "Status", key: "Status" },
       { name: "Tipe", key: "Model" },
       { name: "Pabrikan", key: "Manufacturer" },
@@ -610,7 +611,7 @@ export default function Devices() {
 
       {modal.open && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50 p-4">
-          <div className={`rounded-xl p-6 w-full max-w-2xl shadow-2xl relative max-h-[90vh] overflow-y-auto ${
+          <div className={`rounded-xl p-6 w-full max-w-4xl shadow-2xl relative max-h-[90vh] overflow-y-auto ${
             dark ? 'bg-gray-800 text-white' : 'bg-white text-gray-800'
           }`}>
             <button
@@ -862,7 +863,7 @@ export default function Devices() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto w-full">
+      <div className="max-w-full mx-auto w-full">
         <div className={`rounded-xl shadow-lg p-6 md:p-8 ${
           dark ? 'bg-gray-800' : 'bg-white'
         }`}>
@@ -996,164 +997,167 @@ export default function Devices() {
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-lg shadow border border-gray-200 dark:border-gray-700">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className={`${dark ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                <tr>
-                  {FIELDS.map((field) => (
-                    <th key={field.key} className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+          {/* Container dengan scroll horizontal */}
+          <div className="overflow-x-auto rounded-lg shadow border border-gray-200 dark:border-gray-700" ref={tableContainerRef}>
+            <div className="min-w-full inline-block align-middle">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className={`${dark ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                  <tr>
+                    {FIELDS.map((field) => (
+                      <th key={field.key} className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                        dark ? 'text-gray-300' : 'text-gray-500'
+                      }`}>
+                        {field.name}
+                      </th>
+                    ))}
+                    <th className={`px-6 py-3 text-right text-xs font-medium uppercase tracking-wider ${
                       dark ? 'text-gray-300' : 'text-gray-500'
                     }`}>
-                      {field.name}
+                      Aksi
                     </th>
-                  ))}
-                  <th className={`px-6 py-3 text-right text-xs font-medium uppercase tracking-wider ${
-                    dark ? 'text-gray-300' : 'text-gray-500'
-                  }`}>
-                    Aksi
-                  </th>
-                </tr>
-              </thead>
-              <tbody className={`divide-y ${dark ? 'divide-gray-700 bg-gray-800' : 'divide-gray-200 bg-white'}`}>
-                {loading ? (
-                  <tr>
-                    <td
-                      colSpan={FIELDS.length + 1}
-                      className="px-6 py-12 text-center text-gray-500 dark:text-gray-400"
-                    >
-                      <div className="flex justify-center items-center">
-                        <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                      </div>
-                      <p className="mt-2">Memuat data perangkat...</p>
-                    </td>
                   </tr>
-                ) : getFiltered().length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={FIELDS.length + 1}
-                      className="px-6 py-12 text-center text-gray-500 dark:text-gray-400"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <p className="mt-2 text-lg font-medium">Data tidak ditemukan</p>
-                      <p className="mt-1">Coba ubah filter atau tambah data baru</p>
-                    </td>
-                  </tr>
-                ) : (
-                  getFiltered().map((item, i) => (
-                    <tr
-                      key={item.id || i}
-                      className={`hover:${dark ? 'bg-gray-700' : 'bg-gray-50'} cursor-pointer ${
-                        selectedRow && selectedRow.id === item.id
-                          ? dark ? 'bg-blue-900' : 'bg-blue-50'
-                          : ''
-                      }`}
-                      onClick={() => setSelectedRow(item)}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {renderPhoto(item.fields)}
-                      </td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
-                        dark ? 'text-white' : 'text-gray-900'
-                      }`}>
-                        {item.fields?.Title ?? ""}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          item.fields?.Status === "TERSEDIA" 
-                            ? "bg-green-100 text-green-800" 
-                            : item.fields?.Status === "DIPAKAI"
-                            ? "bg-blue-100 text-blue-800"
-                            : item.fields?.Status === "PERBAIKAN"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-gray-100 text-gray-800"
-                        }`}>
-                          {item.fields?.Status ?? ""}
-                        </span>
-                      </td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${
-                        dark ? 'text-gray-300' : 'text-gray-500'
-                      }`}>
-                        {item.fields?.Model ?? ""}
-                      </td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${
-                        dark ? 'text-gray-300' : 'text-gray-500'
-                      }`}>
-                        {item.fields?.Manufacturer ?? ""}
-                      </td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${
-                        dark ? 'text-gray-300' : 'text-gray-500'
-                      }`}>
-                        {item.fields?.SerialNumber ?? ""}
-                      </td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${
-                        dark ? 'text-gray-300' : 'text-gray-500'
-                      }`}>
-                        {renderPengguna(item.fields)}
-                      </td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${
-                        dark ? 'text-gray-300' : 'text-gray-500'
-                      }`}>
-                        {item.fields?.Divisi ?? ""}
-                      </td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${
-                        dark ? 'text-gray-300' : 'text-gray-500'
-                      }`}>
-                        {item.fields?.AntiVirus ? (
-                          <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-green-100">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-gray-100">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                            </svg>
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        {selectedRow && selectedRow.id === item.id ? (
-                          <div className="flex justify-end space-x-2">
-                            <button
-                              className={`text-indigo-600 hover:text-indigo-900 px-3 py-1.5 rounded-md transition ${
-                                dark 
-                                  ? 'bg-indigo-900 text-indigo-100 hover:bg-indigo-800' 
-                                  : 'bg-indigo-50 hover:bg-indigo-100'
-                              }`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEdit();
-                              }}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className={`text-red-600 hover:text-red-900 px-3 py-1.5 rounded-md transition ${
-                                dark 
-                                  ? 'bg-red-900 text-red-100 hover:bg-red-800' 
-                                  : 'bg-red-50 hover:bg-red-100'
-                              }`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDelete();
-                              }}
-                            >
-                              Hapus
-                            </button>
-                          </div>
-                        ) : null}
+                </thead>
+                <tbody className={`divide-y ${dark ? 'divide-gray-700 bg-gray-800' : 'divide-gray-200 bg-white'}`}>
+                  {loading ? (
+                    <tr>
+                      <td
+                        colSpan={FIELDS.length + 1}
+                        className="px-6 py-12 text-center text-gray-500 dark:text-gray-400"
+                      >
+                        <div className="flex justify-center items-center">
+                          <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        </div>
+                        <p className="mt-2">Memuat data perangkat...</p>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : getFiltered().length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={FIELDS.length + 1}
+                        className="px-6 py-12 text-center text-gray-500 dark:text-gray-400"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p className="mt-2 text-lg font-medium">Data tidak ditemukan</p>
+                        <p className="mt-1">Coba ubah filter atau tambah data baru</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    getFiltered().map((item, i) => (
+                      <tr
+                        key={item.id || i}
+                        className={`hover:${dark ? 'bg-gray-700' : 'bg-gray-50'} cursor-pointer ${
+                          selectedRow && selectedRow.id === item.id
+                            ? dark ? 'bg-blue-900' : 'bg-blue-50'
+                            : ''
+                        }`}
+                        onClick={() => setSelectedRow(item)}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {renderPhoto(item.fields)}
+                        </td>
+                        <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
+                          dark ? 'text-white' : 'text-gray-900'
+                        }`}>
+                          {item.fields?.Title ?? ""}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            item.fields?.Status === "TERSEDIA" 
+                              ? "bg-green-100 text-green-800" 
+                              : item.fields?.Status === "DIPAKAI"
+                              ? "bg-blue-100 text-blue-800"
+                              : item.fields?.Status === "PERBAIKAN"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}>
+                            {item.fields?.Status ?? ""}
+                          </span>
+                        </td>
+                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${
+                          dark ? 'text-gray-300' : 'text-gray-500'
+                        }`}>
+                          {item.fields?.Model ?? ""}
+                        </td>
+                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${
+                          dark ? 'text-gray-300' : 'text-gray-500'
+                        }`}>
+                          {item.fields?.Manufacturer ?? ""}
+                        </td>
+                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${
+                          dark ? 'text-gray-300' : 'text-gray-500'
+                        }`}>
+                          {item.fields?.SerialNumber ?? ""}
+                        </td>
+                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${
+                          dark ? 'text-gray-300' : 'text-gray-500'
+                        }`}>
+                          {renderPengguna(item.fields)}
+                        </td>
+                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${
+                          dark ? 'text-gray-300' : 'text-gray-500'
+                        }`}>
+                          {item.fields?.Divisi ?? ""}
+                        </td>
+                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${
+                          dark ? 'text-gray-300' : 'text-gray-500'
+                        }`}>
+                          {item.fields?.AntiVirus ? (
+                            <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-green-100">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-gray-100">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          {selectedRow && selectedRow.id === item.id ? (
+                            <div className="flex justify-end space-x-2">
+                              <button
+                                className={`text-indigo-600 hover:text-indigo-900 px-3 py-1.5 rounded-md transition ${
+                                  dark 
+                                    ? 'bg-indigo-900 text-indigo-100 hover:bg-indigo-800' 
+                                    : 'bg-indigo-50 hover:bg-indigo-100'
+                                }`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEdit();
+                                }}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                className={`text-red-600 hover:text-red-900 px-3 py-1.5 rounded-md transition ${
+                                  dark 
+                                    ? 'bg-red-900 text-red-100 hover:bg-red-800' 
+                                    : 'bg-red-50 hover:bg-red-100'
+                                }`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDelete();
+                                }}
+                              >
+                                Hapus
+                              </button>
+                            </div>
+                          ) : null}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {getFiltered().length > 0 && !loading && (
