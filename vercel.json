@@ -12,16 +12,14 @@
       "src": "web/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist",
-        "outputDirectory": "web/dist"
+        "distDir": "dist"
       }
     },
     {
       "src": "stok/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist",
-        "outputDirectory": "stok/dist"
+        "distDir": "dist"
       }
     }
   ],
@@ -40,27 +38,33 @@
       "src": "/uploads/(.*)",
       "dest": "/server/index.js"
     },
+    
     {
       "src": "/web/(.*)",
-      "dest": "/web/$1",
-      "headers": {
-        "Cache-Control": "public, max-age=31536000, immutable"
-      }
+      "dest": "/web/dist/$1"
     },
+    {
+      "src": "/web",
+      "dest": "/web/dist/index.html"
+    },
+    
     {
       "src": "/stok/(.*)",
-      "dest": "/stok/$1",
-      "headers": {
-        "Cache-Control": "public, max-age=31536000, immutable"
-      }
-    },
-    {
-      "src": "/",
-      "dest": "/web/index.html"
+      "dest": "/stok/dist/$1"
     },
     {
       "src": "/stok",
-      "dest": "/stok/index.html"
+      "dest": "/stok/dist/index.html"
+    },
+    
+    {
+      "src": "/",
+      "dest": "/web/dist/index.html"
+    },
+   
+    {
+      "src": "/(.*)",
+      "dest": "/web/dist/index.html"
     }
   ],
   "functions": {

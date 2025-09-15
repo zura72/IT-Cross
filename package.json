@@ -15,7 +15,8 @@
     "build:server": "npm run build -w server",
     "build:stok": "npm run build -w stok",
     "build:web": "npm run build -w web",
-    "vercel-build": "npm run build:web && npm run build:stok"
+    "vercel-build": "npm run build:web && npm run build:stok && npm run build:server",
+    "build:vercel": "npm run build"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
