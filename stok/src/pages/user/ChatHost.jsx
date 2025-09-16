@@ -34,14 +34,33 @@ const yesWords = new Set([
 const nowStr = () => new Date().toLocaleString();
 
 const DIVISION_OPTIONS = [
-  "IT & System","Business Development","Direksi","Engineering","Finance & Accounting",
-  "Human Capital","Legal","Marketing & Sales","Operation & Maintenance",
-  "Procurement & Logistic","Project","QHSE","Sekper","Warehouse","Umum",
+  "BOD (Urgent)",
+  "Sekretarian Perusahaan",
+  "Internal Audit",
+  "Keuangan",
+  "Akuntansi",
+  "HCM",
+  "Manajemen Risiko",
+  "Legal",
+  "Pemasaran",
+  "Produksi & Peralatan",
+  "Pengembangan Bisnis & Portofolio",
+  "TI & System",
+  "QHSE",
+  "Pengendalian Proyek & SCM",
+  "Produksi & Peralatan WS 1",
+  "Produksi & Peralatan WS 2",
+  "WS 1",
+  "WS 2",
+  "WWE",
+  "WSE",
+  "Project Coordinator",
+  "Proyek"
 ];
 
 /** Kirim tiket ke server — 1 base saja (mengikuti proxy / env) */
 async function createTicket({ name, division = "", description, photo }) {
-  const priority = String(division).trim().toLowerCase() === "direksi" ? "Urgent" : "Normal";
+  const priority = String(division).trim().toLowerCase().includes("bod (urgent)") ? "Urgent" : "Normal";
   const fd = new FormData();
   fd.append("name", name || "User");
   fd.append("division", division || "Umum");
@@ -109,7 +128,7 @@ function SuccessBig({ title = "Berhasil", subtitle = "" }) {
 }
 
 function RecapCard({ name, complaint, division, datetime }) {
-  const priority = String(division).trim().toLowerCase() === "direksi" ? "Urgent" : "Normal";
+  const priority = String(division).trim().toLowerCase().includes("bod (urgent)") ? "Urgent" : "Normal";
   return (
     <div className="recap card-pop enter-pop">
       <div className="recap-title">Rekap Keluhan</div>
@@ -117,7 +136,7 @@ function RecapCard({ name, complaint, division, datetime }) {
         <div className="k">Nama</div><div className="v">{name || "-"}</div>
         <div className="k">Divisi</div><div className="v">{division || "-"}</div>
         <div className="k">Prioritas</div><div className="v"><b>{priority}</b></div>
-        <div className="k">Keluhan</div><div className="v">“{complaint || "-"}”</div>
+        <div className="k">Keluhan</div><div className="v">"{complaint || "-"}"</div>
         <div className="k">Tanggal & Waktu</div><div className="v">{datetime}</div>
       </div>
     </div>
@@ -135,9 +154,21 @@ function UploadAsk({ onPick, hasPhoto }) {
 
 function DivisionPicker({ current, options, onPick }) {
   const divisionGroups = {
-    "Teknologi & Sistem": ["IT & System", "Engineering", "Operation & Maintenance", "Project"],
-    "Bisnis & Keuangan": ["Business Development", "Finance & Accounting", "Marketing & Sales", "Procurement & Logistic"],
-    "Manajemen & Umum": ["Direksi", "Human Capital", "Legal", "QHSE", "Sekper", "Warehouse", "Umum"]
+    "Manajemen & Direksi": ["BOD (Urgent)", "Sekretarian Perusahaan", "Internal Audit"],
+    "Keuangan & Akuntansi": ["Keuangan", "Akuntansi"],
+    "Sumber Daya Manusia": ["HCM", "Manajemen Risiko"],
+    "Bisnis & Hukum": ["Legal", "Pemasaran", "Pengembangan Bisnis & Portofolio"],
+    "Teknologi & Sistem": ["TI & System", "Project Coordinator", "Proyek"],
+    "Operasional & Produksi": [
+      "Produksi & Peralatan", 
+      "Produksi & Peralatan WS 1", 
+      "Produksi & Peralatan WS 2",
+      "WS 1",
+      "WS 2",
+      "WWE",
+      "WSE"
+    ],
+    "Kualitas & Pengendalian": ["QHSE", "Pengendalian Proyek & SCM"]
   };
 
   return (
@@ -380,7 +411,6 @@ export default function ChatHost() {
 
       setSubmitting(false);
 
-      // hapus bubble "typing"
       setMessages((m) => {
         const arr = m.slice();
         if (arr.length && String(arr[arr.length - 1]?.jsx?.type?.name || "") === "TypingDots") arr.pop();

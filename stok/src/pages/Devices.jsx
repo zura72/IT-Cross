@@ -179,10 +179,18 @@ export default function Devices() {
     return (
       <div className="w-14 h-14 bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden rounded shadow">
         {url ? (
-          <img src={url} alt="Device" className="w-full h-full object-cover" />
-        ) : (
-          <span className="text-gray-400 dark:text-gray-500">—</span>
-        )}
+          <img 
+            src={url} 
+            alt="Device" 
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              // Fallback jika gambar gagal dimuat
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'block';
+            }}
+          />
+        ) : null}
+        <span className="text-gray-400 dark:text-gray-500" style={url ? {display: 'none'} : {}}>—</span>
       </div>
     );
   }
@@ -593,7 +601,7 @@ export default function Devices() {
 
   /** ====== UI ====== */
   return (
-    <div className={`min-h-screen py-8 px-4 ml-64 transition-colors duration-300 ${
+    <div className={`min-h-screen py-8 transition-colors duration-300 ${
       dark 
         ? 'bg-gray-900 text-white' 
         : 'bg-gradient-to-br from-blue-50 to-indigo-100 text-gray-800'
@@ -611,7 +619,7 @@ export default function Devices() {
 
       {modal.open && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50 p-4">
-          <div className={`rounded-xl p-6 w-full max-w-4xl shadow-2xl relative max-h-[90vh] overflow-y-auto ${
+          <div className={`rounded-xl p-6 w-full max-w-3xl shadow-2xl relative max-h-[90vh] overflow-y-auto ${
             dark ? 'bg-gray-800 text-white' : 'bg-white text-gray-800'
           }`}>
             <button
@@ -863,14 +871,15 @@ export default function Devices() {
         </div>
       )}
 
-      <div className="max-w-full mx-auto w-full">
-        <div className={`rounded-xl shadow-lg p-6 md:p-8 ${
+      {/* Container utama dengan max-width dan padding */}
+      <div className="container mx-auto px-4 max-w-screen-xl">
+        <div className={`rounded-xl shadow-lg p-4 md:p-6 ${
           dark ? 'bg-gray-800' : 'bg-white'
         }`}>
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
             <div>
-              <h1 className={`text-3xl font-bold ${dark ? 'text-white' : 'text-gray-800'}`}>Manajemen Perangkat</h1>
-              <p className={`mt-1 ${dark ? 'text-gray-300' : 'text-gray-600'}`}>Kelola data perangkat IT perusahaan</p>
+              <h1 className={`text-2xl font-bold ${dark ? 'text-white' : 'text-gray-800'}`}>Manajemen Perangkat</h1>
+              <p className={`mt-1 text-sm ${dark ? 'text-gray-300' : 'text-gray-600'}`}>Kelola data perangkat IT perusahaan</p>
             </div>
 
             <div className="flex flex-wrap gap-3">
@@ -1004,13 +1013,13 @@ export default function Devices() {
                 <thead className={`${dark ? 'bg-gray-700' : 'bg-gray-50'}`}>
                   <tr>
                     {FIELDS.map((field) => (
-                      <th key={field.key} className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                      <th key={field.key} className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${
                         dark ? 'text-gray-300' : 'text-gray-500'
                       }`}>
                         {field.name}
                       </th>
                     ))}
-                    <th className={`px-6 py-3 text-right text-xs font-medium uppercase tracking-wider ${
+                    <th className={`px-4 py-3 text-right text-xs font-medium uppercase tracking-wider ${
                       dark ? 'text-gray-300' : 'text-gray-500'
                     }`}>
                       Aksi
@@ -1057,15 +1066,15 @@ export default function Devices() {
                         }`}
                         onClick={() => setSelectedRow(item)}
                       >
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-4 whitespace-nowrap">
                           {renderPhoto(item.fields)}
                         </td>
-                        <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
+                        <td className={`px-4 py-4 whitespace-nowrap text-sm font-medium ${
                           dark ? 'text-white' : 'text-gray-900'
                         }`}>
                           {item.fields?.Title ?? ""}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-4 whitespace-nowrap">
                           <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
                             item.fields?.Status === "TERSEDIA" 
                               ? "bg-green-100 text-green-800" 
@@ -1078,32 +1087,32 @@ export default function Devices() {
                             {item.fields?.Status ?? ""}
                           </span>
                         </td>
-                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${
+                        <td className={`px-4 py-4 whitespace-nowrap text-sm ${
                           dark ? 'text-gray-300' : 'text-gray-500'
                         }`}>
                           {item.fields?.Model ?? ""}
                         </td>
-                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${
+                        <td className={`px-4 py-4 whitespace-nowrap text-sm ${
                           dark ? 'text-gray-300' : 'text-gray-500'
                         }`}>
                           {item.fields?.Manufacturer ?? ""}
                         </td>
-                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${
+                        <td className={`px-4 py-4 whitespace-nowrap text-sm ${
                           dark ? 'text-gray-300' : 'text-gray-500'
                         }`}>
                           {item.fields?.SerialNumber ?? ""}
                         </td>
-                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${
+                        <td className={`px-4 py-4 whitespace-nowrap text-sm ${
                           dark ? 'text-gray-300' : 'text-gray-500'
                         }`}>
                           {renderPengguna(item.fields)}
                         </td>
-                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${
+                        <td className={`px-4 py-4 whitespace-nowrap text-sm ${
                           dark ? 'text-gray-300' : 'text-gray-500'
                         }`}>
                           {item.fields?.Divisi ?? ""}
                         </td>
-                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${
+                        <td className={`px-4 py-4 whitespace-nowrap text-sm ${
                           dark ? 'text-gray-300' : 'text-gray-500'
                         }`}>
                           {item.fields?.AntiVirus ? (
@@ -1120,7 +1129,7 @@ export default function Devices() {
                             </span>
                           )}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
                           {selectedRow && selectedRow.id === item.id ? (
                             <div className="flex justify-end space-x-2">
                               <button
@@ -1150,24 +1159,24 @@ export default function Devices() {
                                 Hapus
                               </button>
                             </div>
-                          ) : null}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                            ) : null}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
 
-          {getFiltered().length > 0 && !loading && (
-            <div className={`mt-4 text-sm ${dark ? 'text-gray-400' : 'text-gray-500'}`}>
-              Menampilkan {getFiltered().length} dari {data.length} perangkat
-            </div>
-          )}
+            {getFiltered().length > 0 && !loading && (
+              <div className={`mt-4 text-sm ${dark ? 'text-gray-400' : 'text-gray-500'}`}>
+                Menampilkan {getFiltered().length} dari {data.length} perangkat
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
   );
 }
 
