@@ -1,31 +1,23 @@
 {
   "name": "wki-monorepo",
   "private": true,
-  "workspaces": [
-    "server",
-    "stok",
-    "web"
-  ],
   "scripts": {
-    "dev": "concurrently -k -p \"[{name}]\" -n SVR,ADM,WEB -c green,magenta,cyan \"npm run dev:server\" \"npm run dev:stok\" \"npm run dev:web\"",
-    "dev:server": "npm run dev -w server",
-    "dev:stok": "wait-on http-get://localhost:4000/api/health && npm run dev -w stok",
-    "dev:web": "wait-on http-get://localhost:4000/api/health && npm run dev -w web",
-    "build": "npm run build -w server && npm run build -w stok && npm run build -w web",
-    "build:server": "npm run build -w server",
-    "build:stok": "npm run build -w stok",
-    "build:web": "npm run build -w web",
-    "vercel-build": "npm run build:web && npm run build:stok && npm run build:server",
-    "build:vercel": "npm run build"
+    "dev": "concurrently -k -p \"[{name}]\" -n SVR,STK,WEB -c green,magenta,cyan \"npm run dev:server\" \"npm run dev:stok\" \"npm run dev:web\"",
+    "dev:server": "cd server && npm run dev",
+    "dev:stok": "cd stok && npm run dev",
+    "dev:web": "cd web && npm run dev",
+    "build": "npm run build:server && npm run build:stok && npm run build:web",
+    "build:server": "cd server && npm run build",
+    "build:stok": "cd stok && npm run build", 
+    "build:web": "cd web && npm run build",
+    "vercel-build": "npm run build",
+    "install:all": "npm install && cd server && npm install && cd ../stok && npm install && cd ../web && npm install"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
-    "http-proxy-middleware": "^3.0.5",
-    "msw": "^2.11.1",
     "wait-on": "7.2.0"
   },
-  "dependencies": {
-    "framer-motion": "^12.23.13",
-    "styled-jsx": "^5.1.7"
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

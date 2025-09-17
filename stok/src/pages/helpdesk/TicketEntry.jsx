@@ -174,7 +174,6 @@ export default function TicketEntry() {
       setTickets(data.rows || []);
     } catch (err) {
       setError("Gagal memuat tiket: " + err.message);
-      // Fallback to demo data
       setTickets([
         {
           id: 1,
