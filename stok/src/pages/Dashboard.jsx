@@ -11,9 +11,12 @@ import {
   FaChartPie,
   FaExclamationTriangle,
   FaTools,
-  FaBoxOpen
+  FaBoxOpen,
+  FaSync,
+  FaChevronRight
 } from "react-icons/fa";
 import { useTheme } from "../context/ThemeContext";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Mapping warna untuk status device
 const statusMap = {
@@ -35,6 +38,22 @@ const peripheralSiteId = "waskitainfra.sharepoint.com,82f98496-0de9-45f8-9b3e-30
 const peripheralListId = "dae749d2-2fd1-4a05-bd16-a69194eb0341";
 const GRAPH_SCOPE = ["Sites.Read.All", "Directory.Read.All"];
 
+// GlassCard Component
+const GlassCard = ({ children, className = '', darkMode }) => (
+  <motion.div 
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    className={`rounded-2xl backdrop-blur-lg border border-opacity-20 
+      ${darkMode 
+        ? 'bg-gray-800/70 border-gray-600' 
+        : 'bg-white/80 border-gray-300'
+      } 
+      shadow-xl ${className}`}
+  >
+    {children}
+  </motion.div>
+);
+
 export default function Dashboard() {
   const { dark: darkMode } = useTheme();
   const { instance, accounts } = useMsal();
@@ -44,6 +63,7 @@ export default function Dashboard() {
   const [peripheralData, setPeripheralData] = useState([]);
   const [licenseData, setLicenseData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({
     totalDevices: 0,
     totalPeripherals: 0,
@@ -93,8 +113,14 @@ export default function Dashboard() {
       console.error("Gagal load dashboard: ", err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchAll();
+  };
 
   useEffect(() => {
     // Calculate statistics
@@ -178,24 +204,53 @@ export default function Dashboard() {
     return (
       <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-300">Memuat data...</p>
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"
+          ></motion.div>
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="mt-4 text-gray-600 dark:text-gray-300"
+          >
+            Memuat data...
+          </motion.p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+    <div className={`min-h-screen transition-colors duration-500 ${darkMode ? 'dark bg-gradient-to-br from-gray-900 to-gray-800 text-white' : 'bg-gradient-to-br from-blue-50 to-gray-100 text-gray-900'}`}>
       {/* Header */}
-      <div className={`px-6 py-4 ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-md`}>
+      <motion.div 
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className={`px-6 py-4 bg-gradient-to-r ${darkMode ? 'from-gray-800 to-gray-900' : 'from-blue-600 to-purple-700 text-white'} shadow-lg`}
+      >
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">IT Asset Dashboard</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Manajemen aset TI terintegrasi</p>
+            <h1 className="text-2xl font-bold">IT Asset Dashboard</h1>
+            <p className="text-sm opacity-80">Manajemen aset TI terintegrasi</p>
           </div>
           <div className="flex items-center space-x-4">
-            <div className={`px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className={`p-2 rounded-full ${darkMode ? 'bg-gray-700' : 'bg-white/20'} transition-colors flex items-center`}
+            >
+              <motion.div
+                animate={{ rotate: refreshing ? 360 : 0 }}
+                transition={{ duration: 1, repeat: refreshing ? Infinity : 0, ease: "linear" }}
+              >
+                <FaSync className={refreshing ? "text-blue-400" : "text-white"} />
+              </motion.div>
+            </motion.button>
+            <div className={`px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-gray-700' : 'bg-white/20'}`}>
               {new Date().toLocaleDateString('id-ID', { 
                 weekday: 'long', 
                 year: 'numeric', 
@@ -205,11 +260,16 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       <div className="container mx-auto px-4 py-6">
         {/* Overview Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8"
+        >
           <OverviewCard 
             title="Total Devices" 
             value={stats.totalDevices} 
@@ -252,14 +312,14 @@ export default function Dashboard() {
             color="yellow"
             darkMode={darkMode}
           />
-        </div>
+        </motion.div>
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Column */}
           <div className="space-y-6">
             {/* Device Status Chart */}
-            <div className={`rounded-xl p-6 shadow-lg ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+            <GlassCard darkMode={darkMode} className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold flex items-center">
                   <FaChartPie className="mr-2 text-blue-500" />
@@ -271,27 +331,29 @@ export default function Dashboard() {
                 <PieChart pieData={pieData} />
                 <div className="mt-4 md:mt-0 md:ml-6 w-full space-y-3">
                   {pieData.map(s => (
-                    <div key={s.key} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <motion.div 
+                      key={s.key} 
+                      whileHover={{ scale: 1.02 }}
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                    >
                       <div className="flex items-center">
                         <span className="text-lg mr-3">{s.icon}</span>
                         <span className="text-sm">{s.name}</span>
                       </div>
                       <div className="flex items-center">
                         <span className="text-sm font-medium mr-2">{s.value}</span>
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          darkMode ? 'bg-gray-700' : 'bg-gray-100'
-                        }`}>
+                        <span className={`px-2 py-1 rounded-full text-xs ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
                           {Math.round((s.value / deviceData.length) * 100)}%
                         </span>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               </div>
-            </div>
+            </GlassCard>
 
             {/* Recent Activity */}
-            <div className={`rounded-xl p-6 shadow-lg ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+            <GlassCard darkMode={darkMode} className="p-6">
               <div className="flex items-center gap-2 mb-6">
                 <FaListUl className="text-blue-500" />
                 <h2 className="text-lg font-semibold">Aktivitas Terakhir</h2>
@@ -300,37 +362,48 @@ export default function Dashboard() {
                 {latestActivities.length === 0 ? (
                   <p className="text-gray-500 dark:text-gray-400 text-center py-4">Belum ada aktivitas</p>
                 ) : (
-                  latestActivities.map((act, i) => (
-                    <div key={i} className="flex items-start p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
-                      <div className="flex-shrink-0 pt-1">
-                        <div className={`h-3 w-3 rounded-full ${
-                          act.type === 'device' ? 'bg-blue-500' : 'bg-green-500'
-                        }`}></div>
-                      </div>
-                      <div className="ml-4 flex-1">
-                        <p className="text-sm font-medium">{act.text}</p>
-                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                          {act.waktu ? new Date(act.waktu).toLocaleString("id-ID") : "Waktu tidak tersedia"}
-                        </p>
-                      </div>
-                    </div>
-                  ))
+                  <AnimatePresence>
+                    {latestActivities.map((act, i) => (
+                      <motion.div 
+                        key={i}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.1 }}
+                        className="flex items-start p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+                      >
+                        <div className="flex-shrink-0 pt-1">
+                          <div className={`h-3 w-3 rounded-full ${act.type === 'device' ? 'bg-blue-500' : 'bg-green-500'}`}></div>
+                        </div>
+                        <div className="ml-4 flex-1">
+                          <p className="text-sm font-medium">{act.text}</p>
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            {act.waktu ? new Date(act.waktu).toLocaleString("id-ID") : "Waktu tidak tersedia"}
+                          </p>
+                        </div>
+                        <FaChevronRight className="text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors self-center" />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 )}
               </div>
-            </div>
+            </GlassCard>
           </div>
 
           {/* Right Column */}
           <div className="space-y-6">
             {/* Notifications */}
-            <div className={`rounded-xl p-6 shadow-lg ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+            <GlassCard darkMode={darkMode} className="p-6">
               <div className="flex items-center gap-2 mb-6">
                 <FaBell className="text-yellow-500" />
                 <h2 className="text-lg font-semibold">Notifikasi</h2>
                 {(notifPerluPerbaikan || notifLicenseWarning || notifPeripheralHabis) && (
-                  <span className="px-2 py-1 bg-red-500 text-white text-xs rounded-full">
+                  <motion.span 
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="px-2 py-1 bg-red-500 text-white text-xs rounded-full"
+                  >
                     {[notifPerluPerbaikan, notifLicenseWarning, notifPeripheralHabis].filter(Boolean).length}
-                  </span>
+                  </motion.span>
                 )}
               </div>
               <div className="space-y-4">
@@ -362,17 +435,21 @@ export default function Dashboard() {
                 )}
                 
                 {!notifPerluPerbaikan && !notifLicenseWarning && !notifPeripheralHabis && (
-                  <div className="text-center py-8">
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-center py-8"
+                  >
                     <div className="text-4xl mb-2">🎉</div>
                     <p className="text-gray-500 dark:text-gray-400">Tidak ada notifikasi</p>
                     <p className="text-sm text-gray-400 dark:text-gray-500">Semua sistem berjalan normal</p>
-                  </div>
+                  </motion.div>
                 )}
               </div>
-            </div>
+            </GlassCard>
 
             {/* Quick Actions */}
-            <div className={`rounded-xl p-6 shadow-lg ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+            <GlassCard darkMode={darkMode} className="p-6">
               <h2 className="text-lg font-semibold mb-6">Akses Cepat</h2>
               <div className="grid grid-cols-2 gap-3">
                 <QuickActionButton 
@@ -404,7 +481,7 @@ export default function Dashboard() {
                   darkMode={darkMode}
                 />
               </div>
-            </div>
+            </GlassCard>
           </div>
         </div>
       </div>
@@ -424,31 +501,31 @@ function OverviewCard({ title, value, icon, color, darkMode }) {
   };
 
   return (
-    <div className={`p-4 rounded-xl shadow-sm ${
-      darkMode 
-        ? `bg-gray-800 hover:bg-gray-750 ${colorClasses[color].darkBg}` 
-        : `bg-white hover:bg-gray-50 ${colorClasses[color].bg}`
-    } transition-colors duration-200`}>
+    <motion.div 
+      whileHover={{ scale: 1.05, y: -5 }}
+      className={`p-4 rounded-xl shadow-sm transition-all duration-300 ${
+        darkMode 
+          ? `bg-gray-800 hover:bg-gray-750 ${colorClasses[color].darkBg}` 
+          : `bg-white hover:bg-gray-50 ${colorClasses[color].bg}`
+      }`}
+    >
       <div className="flex items-center justify-between">
         <div>
-          <p className={`text-sm font-medium ${
-            darkMode ? 'text-gray-400' : 'text-gray-600'
-          }`}>
+          <p className={`text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             {title}
           </p>
-          <p className={`text-2xl font-bold ${
-            darkMode ? colorClasses[color].darkText : colorClasses[color].text
-          }`}>
+          <p className={`text-2xl font-bold ${darkMode ? colorClasses[color].darkText : colorClasses[color].text}`}>
             {value}
           </p>
         </div>
-        <div className={`p-3 rounded-full ${
-          darkMode ? 'bg-gray-700' : 'bg-white'
-        }`}>
+        <motion.div 
+          whileHover={{ rotate: 10 }}
+          className={`p-3 rounded-full ${darkMode ? 'bg-gray-700' : 'bg-white'}`}
+        >
           {icon}
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -476,7 +553,11 @@ function NotificationItem({ type, title, content, darkMode }) {
   };
 
   return (
-    <div className={`p-4 rounded-lg border ${typeStyles[type].bg} ${typeStyles[type].border}`}>
+    <motion.div 
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      className={`p-4 rounded-lg border ${typeStyles[type].bg} ${typeStyles[type].border}`}
+    >
       <div className="flex items-start">
         <span className="text-xl mr-3">{typeStyles[type].icon}</span>
         <div className="flex-1">
@@ -484,7 +565,7 @@ function NotificationItem({ type, title, content, darkMode }) {
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{content}</p>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -498,54 +579,81 @@ function QuickActionButton({ title, icon, onClick, color, darkMode }) {
   };
 
   return (
-    <button
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
       onClick={onClick}
       className={`p-4 rounded-xl text-white ${colorClasses[color].bg} ${colorClasses[color].hover} transition-colors duration-200 flex flex-col items-center justify-center`}
     >
       <div className="text-2xl mb-2">{icon}</div>
       <span className="text-sm font-medium">{title}</span>
-    </button>
+    </motion.button>
   );
 }
 
-// --- Pie Chart Custom
+// --- Pie Chart Custom dengan Tooltip
 function PieChart({ pieData }) {
+  const [activeIndex, setActiveIndex] = useState(null);
   const total = pieData.reduce((sum, s) => sum + s.value, 0) || 1;
   let cumulative = 0;
   const radius = 50, cx = 60, cy = 60;
   
   return (
-    <svg width={120} height={120} viewBox="0 0 120 120" className="flex-shrink-0">
-      {pieData.map((s, i) => {
-        if (s.value === 0) return null;
-        
-        const val = s.value / total;
-        const start = cumulative;
-        const end = cumulative + val;
-        cumulative = end;
-        
-        const x1 = cx + radius * Math.cos(2 * Math.PI * start - Math.PI / 2);
-        const y1 = cy + radius * Math.sin(2 * Math.PI * start - Math.PI / 2);
-        const x2 = cx + radius * Math.cos(2 * Math.PI * end - Math.PI / 2);
-        const y2 = cy + radius * Math.sin(2 * Math.PI * end - Math.PI / 2);
-        
-        const largeArc = val > 0.5 ? 1 : 0;
-        const d = `M${cx},${cy} L${x1},${y1} A${radius},${radius} 0 ${largeArc},1 ${x2},${y2} Z`;
-        
-        return (
-          <path 
-            key={i} 
-            d={d} 
-            fill={s.color} 
-            stroke="#fff" 
-            strokeWidth={2}
-          />
-        );
-      })}
-      <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#e5e7eb" strokeWidth={2} />
-      <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" fontSize="14" fontWeight="bold" fill="currentColor">
-        {total}
-      </text>
-    </svg>
+    <div className="relative">
+      <svg width={120} height={120} viewBox="0 0 120 120" className="flex-shrink-0">
+        {pieData.map((s, i) => {
+          if (s.value === 0) return null;
+          
+          const val = s.value / total;
+          const start = cumulative;
+          const end = cumulative + val;
+          cumulative = end;
+          
+          const x1 = cx + radius * Math.cos(2 * Math.PI * start - Math.PI / 2);
+          const y1 = cy + radius * Math.sin(2 * Math.PI * start - Math.PI / 2);
+          const x2 = cx + radius * Math.cos(2 * Math.PI * end - Math.PI / 2);
+          const y2 = cy + radius * Math.sin(2 * Math.PI * end - Math.PI / 2);
+          
+          const largeArc = val > 0.5 ? 1 : 0;
+          const d = `M${cx},${cy} L${x1},${y1} A${radius},${radius} 0 ${largeArc},1 ${x2},${y2} Z`;
+          
+          return (
+            <path 
+              key={i} 
+              d={d} 
+              fill={s.color} 
+              stroke="#fff" 
+              strokeWidth={2}
+              className="transition-all duration-300 cursor-pointer"
+              style={{ opacity: activeIndex === null || activeIndex === i ? 1 : 0.7 }}
+              onMouseEnter={() => setActiveIndex(i)}
+              onMouseLeave={() => setActiveIndex(null)}
+            />
+          );
+        })}
+        <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#e5e7eb" strokeWidth={2} />
+        <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" fontSize="14" fontWeight="bold" fill="currentColor">
+          {total}
+        </text>
+      </svg>
+      
+      {/* Tooltip untuk pie chart */}
+      {activeIndex !== null && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="absolute bg-gray-900 text-white p-2 rounded-lg text-sm shadow-lg z-10"
+          style={{ 
+            top: 0, 
+            left: 130,
+            transform: 'translateY(-50%)'
+          }}
+        >
+          <div className="font-semibold">{pieData[activeIndex].name}</div>
+          <div>{pieData[activeIndex].value} perangkat</div>
+          <div>{Math.round((pieData[activeIndex].value / total) * 100)}%</div>
+        </motion.div>
+      )}
+    </div>
   );
 }

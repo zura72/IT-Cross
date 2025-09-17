@@ -1,3 +1,4 @@
+// src/routes.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { useMsal } from "@azure/msal-react";
@@ -12,8 +13,10 @@ import Settings from "./pages/Settings";
 import ChartsLicense from "./pages/charts/ChartsLicense";
 import ChartsPeripheral from "./pages/charts/ChartsPeripheral";
 import ChartsDevice from "./pages/charts/ChartsDevice";
+import ChartHelpdesk from "./pages/charts/ChartHelpdesk";
 import TicketEntry from "./pages/helpdesk/TicketEntry";
 import TicketSolved from "./pages/helpdesk/TicketSolved";
+import DataSharepoint from "./pages/helpdesk/DataSharepoint";
 import ChatHost from "./pages/user/ChatHost";
 
 /* ============= Admin helpers (pakai constants/admins) ============= */
@@ -201,6 +204,16 @@ export default function AppRoutes() {
         }
       />
       <Route
+        path="/charts/helpdesk"
+        element={
+          <RequireAdmin>
+            <ThemedLayout>
+              <ChartHelpdesk />
+            </ThemedLayout>
+          </RequireAdmin>
+        }
+      />
+      <Route
         path="/helpdesk/entry"
         element={
           <RequireAdmin>
@@ -216,6 +229,16 @@ export default function AppRoutes() {
           <RequireAdmin>
             <ThemedLayout>
               <TicketSolved />
+            </ThemedLayout>
+          </RequireAdmin>
+        }
+      />
+      <Route
+        path="/helpdesk/sharepoint"
+        element={
+          <RequireAdmin>
+            <ThemedLayout>
+              <DataSharepoint />
             </ThemedLayout>
           </RequireAdmin>
         }
