@@ -197,9 +197,6 @@ export default function Dashboard() {
   }
   const latestActivities = getLatestActivity();
 
-  // ---- NAV ----
-  const goTo = (url) => navigate(url);
-
   if (loading) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
@@ -223,19 +220,19 @@ export default function Dashboard() {
   }
 
   return (
-    <div className={`min-h-screen transition-colors duration-500 ${darkMode ? 'dark bg-gradient-to-br from-gray-900 to-gray-800 text-white' : 'bg-gradient-to-br from-blue-50 to-gray-100 text-gray-900'}`}>
+    <div className={`min-h-screen transition-colors duration-500 ${darkMode ? 'dark bg-gradient-to-br from-gray-900 to-gray-800 text-white' : 'bg-gradient-to-br from-blue-50 to-gray-100 text-gray-900'} px-2 sm:px-4 py-4`}>
       {/* Header */}
       <motion.div 
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className={`px-6 py-4 bg-gradient-to-r ${darkMode ? 'from-gray-800 to-gray-900' : 'from-blue-600 to-purple-700 text-white'} shadow-lg`}
+        className={`px-4 py-3 sm:px-6 sm:py-4 rounded-xl mb-4 ${darkMode ? 'bg-gray-800' : 'bg-blue-600 text-white'} shadow-lg`}
       >
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">IT Asset Dashboard</h1>
-            <p className="text-sm opacity-80">Manajemen aset TI terintegrasi</p>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
+          <div className="mb-3 sm:mb-0">
+            <h1 className="text-xl sm:text-2xl font-bold">IT Asset Dashboard</h1>
+            <p className="text-xs sm:text-sm opacity-80">Manajemen aset TI terintegrasi</p>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4 self-end sm:self-auto">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -247,14 +244,14 @@ export default function Dashboard() {
                 animate={{ rotate: refreshing ? 360 : 0 }}
                 transition={{ duration: 1, repeat: refreshing ? Infinity : 0, ease: "linear" }}
               >
-                <FaSync className={refreshing ? "text-blue-400" : "text-white"} />
+                <FaSync className={refreshing ? "text-blue-400" : darkMode ? "text-gray-300" : "text-white"} size={16} />
               </motion.div>
             </motion.button>
-            <div className={`px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-gray-700' : 'bg-white/20'}`}>
+            <div className={`px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs ${darkMode ? 'bg-gray-700' : 'bg-white/20'}`}>
               {new Date().toLocaleDateString('id-ID', { 
-                weekday: 'long', 
+                weekday: 'short', 
                 year: 'numeric', 
-                month: 'long', 
+                month: 'short', 
                 day: 'numeric' 
               })}
             </div>
@@ -262,74 +259,74 @@ export default function Dashboard() {
         </div>
       </motion.div>
 
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-1 sm:px-2 py-2">
         {/* Overview Cards */}
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8"
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 mb-4 sm:mb-6"
         >
           <OverviewCard 
             title="Total Devices" 
             value={stats.totalDevices} 
-            icon={<FaDesktop className="text-blue-500" />}
+            icon={<FaDesktop className="text-blue-500" size={16} />}
             color="blue"
             darkMode={darkMode}
           />
           <OverviewCard 
             title="Total Peripheral" 
             value={stats.totalPeripherals} 
-            icon={<FaPlug className="text-green-500" />}
+            icon={<FaPlug className="text-green-500" size={16} />}
             color="green"
             darkMode={darkMode}
           />
           <OverviewCard 
             title="Total Licenses" 
             value={stats.totalLicenses} 
-            icon={<FaIdBadge className="text-purple-500" />}
+            icon={<FaIdBadge className="text-purple-500" size={16} />}
             color="purple"
             darkMode={darkMode}
           />
           <OverviewCard 
             title="Perbaikan" 
             value={stats.devicesNeedingRepair} 
-            icon={<FaTools className="text-orange-500" />}
+            icon={<FaTools className="text-orange-500" size={16} />}
             color="orange"
             darkMode={darkMode}
           />
           <OverviewCard 
             title="Stok Habis" 
             value={stats.zeroStockItems} 
-            icon={<FaBoxOpen className="text-red-500" />}
+            icon={<FaBoxOpen className="text-red-500" size={16} />}
             color="red"
             darkMode={darkMode}
           />
           <OverviewCard 
             title="License Warning" 
             value={stats.licenseWarnings} 
-            icon={<FaExclamationTriangle className="text-yellow-500" />}
+            icon={<FaExclamationTriangle className="text-yellow-500" size={16} />}
             color="yellow"
             darkMode={darkMode}
           />
         </motion.div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
           {/* Left Column */}
-          <div className="space-y-6">
+          <div className="space-y-3 sm:space-y-4">
             {/* Device Status Chart */}
-            <GlassCard darkMode={darkMode} className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold flex items-center">
-                  <FaChartPie className="mr-2 text-blue-500" />
+            <GlassCard darkMode={darkMode} className="p-3 sm:p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-base sm:text-lg font-semibold flex items-center">
+                  <FaChartPie className="mr-2 text-blue-500" size={16} />
                   Status Perangkat
                 </h2>
-                <span className="text-sm text-gray-500 dark:text-gray-400">{deviceData.length} perangkat</span>
+                <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{deviceData.length} perangkat</span>
               </div>
-              <div className="flex flex-col md:flex-row items-center">
+              <div className="flex flex-col sm:flex-row items-center">
                 <PieChart pieData={pieData} />
-                <div className="mt-4 md:mt-0 md:ml-6 w-full space-y-3">
+                <div className="mt-3 sm:mt-0 sm:ml-4 w-full space-y-2">
                   {pieData.map(s => (
                     <motion.div 
                       key={s.key} 
@@ -337,12 +334,12 @@ export default function Dashboard() {
                       className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                     >
                       <div className="flex items-center">
-                        <span className="text-lg mr-3">{s.icon}</span>
-                        <span className="text-sm">{s.name}</span>
+                        <span className="text-base mr-2">{s.icon}</span>
+                        <span className="text-xs sm:text-sm">{s.name}</span>
                       </div>
                       <div className="flex items-center">
-                        <span className="text-sm font-medium mr-2">{s.value}</span>
-                        <span className={`px-2 py-1 rounded-full text-xs ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                        <span className="text-xs sm:text-sm font-medium mr-1 sm:mr-2">{s.value}</span>
+                        <span className={`px-1 sm:px-2 py-0.5 rounded-full text-xs ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
                           {Math.round((s.value / deviceData.length) * 100)}%
                         </span>
                       </div>
@@ -353,14 +350,14 @@ export default function Dashboard() {
             </GlassCard>
 
             {/* Recent Activity */}
-            <GlassCard darkMode={darkMode} className="p-6">
-              <div className="flex items-center gap-2 mb-6">
-                <FaListUl className="text-blue-500" />
-                <h2 className="text-lg font-semibold">Aktivitas Terakhir</h2>
+            <GlassCard darkMode={darkMode} className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <FaListUl className="text-blue-500" size={16} />
+                <h2 className="text-base sm:text-lg font-semibold">Aktivitas Terakhir</h2>
               </div>
-              <div className="space-y-4">
+              <div className="space-y-2 sm:space-y-3">
                 {latestActivities.length === 0 ? (
-                  <p className="text-gray-500 dark:text-gray-400 text-center py-4">Belum ada aktivitas</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-center py-3 text-sm">Belum ada aktivitas</p>
                 ) : (
                   <AnimatePresence>
                     {latestActivities.map((act, i) => (
@@ -369,18 +366,18 @@ export default function Dashboard() {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.1 }}
-                        className="flex items-start p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+                        className="flex items-start p-2 sm:p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
                       >
                         <div className="flex-shrink-0 pt-1">
-                          <div className={`h-3 w-3 rounded-full ${act.type === 'device' ? 'bg-blue-500' : 'bg-green-500'}`}></div>
+                          <div className={`h-2 w-2 sm:h-3 sm:w-3 rounded-full ${act.type === 'device' ? 'bg-blue-500' : 'bg-green-500'}`}></div>
                         </div>
-                        <div className="ml-4 flex-1">
-                          <p className="text-sm font-medium">{act.text}</p>
+                        <div className="ml-3 flex-1 min-w-0">
+                          <p className="text-xs sm:text-sm font-medium truncate">{act.text}</p>
                           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                             {act.waktu ? new Date(act.waktu).toLocaleString("id-ID") : "Waktu tidak tersedia"}
                           </p>
                         </div>
-                        <FaChevronRight className="text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors self-center" />
+                        <FaChevronRight className="text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors self-center flex-shrink-0" size={12} />
                       </motion.div>
                     ))}
                   </AnimatePresence>
@@ -390,23 +387,23 @@ export default function Dashboard() {
           </div>
 
           {/* Right Column */}
-          <div className="space-y-6">
+          <div className="space-y-3 sm:space-y-4">
             {/* Notifications */}
-            <GlassCard darkMode={darkMode} className="p-6">
-              <div className="flex items-center gap-2 mb-6">
-                <FaBell className="text-yellow-500" />
-                <h2 className="text-lg font-semibold">Notifikasi</h2>
+            <GlassCard darkMode={darkMode} className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <FaBell className="text-yellow-500" size={16} />
+                <h2 className="text-base sm:text-lg font-semibold">Notifikasi</h2>
                 {(notifPerluPerbaikan || notifLicenseWarning || notifPeripheralHabis) && (
                   <motion.span 
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className="px-2 py-1 bg-red-500 text-white text-xs rounded-full"
+                    className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full"
                   >
                     {[notifPerluPerbaikan, notifLicenseWarning, notifPeripheralHabis].filter(Boolean).length}
                   </motion.span>
                 )}
               </div>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {notifPerluPerbaikan && (
                   <NotificationItem 
                     type="warning"
@@ -438,44 +435,44 @@ export default function Dashboard() {
                   <motion.div 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="text-center py-8"
+                    className="text-center py-4 sm:py-6"
                   >
-                    <div className="text-4xl mb-2">🎉</div>
-                    <p className="text-gray-500 dark:text-gray-400">Tidak ada notifikasi</p>
-                    <p className="text-sm text-gray-400 dark:text-gray-500">Semua sistem berjalan normal</p>
+                    <div className="text-2xl sm:text-4xl mb-1 sm:mb-2">🎉</div>
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Tidak ada notifikasi</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">Semua sistem berjalan normal</p>
                   </motion.div>
                 )}
               </div>
             </GlassCard>
 
             {/* Quick Actions */}
-            <GlassCard darkMode={darkMode} className="p-6">
-              <h2 className="text-lg font-semibold mb-6">Akses Cepat</h2>
-              <div className="grid grid-cols-2 gap-3">
+            <GlassCard darkMode={darkMode} className="p-3 sm:p-4">
+              <h2 className="text-base sm:text-lg font-semibold mb-4">Akses Cepat</h2>
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
                 <QuickActionButton 
                   title="Devices"
-                  icon={<FaDesktop />}
+                  icon={<FaDesktop size={14} />}
                   onClick={() => navigate("/devices")}
                   color="blue"
                   darkMode={darkMode}
                 />
                 <QuickActionButton 
                   title="Peripheral"
-                  icon={<FaPlug />}
+                  icon={<FaPlug size={14} />}
                   onClick={() => navigate("/peripheral")}
                   color="green"
                   darkMode={darkMode}
                 />
                 <QuickActionButton 
                   title="Licenses"
-                  icon={<FaIdBadge />}
+                  icon={<FaIdBadge size={14} />}
                   onClick={() => navigate("/licenses")}
                   color="purple"
                   darkMode={darkMode}
                 />
                 <QuickActionButton 
                   title="Helpdesk"
-                  icon={<FaTools />}
+                  icon={<FaTools size={14} />}
                   onClick={() => navigate("/helpdesk/entry")}
                   color="orange"
                   darkMode={darkMode}
@@ -503,7 +500,7 @@ function OverviewCard({ title, value, icon, color, darkMode }) {
   return (
     <motion.div 
       whileHover={{ scale: 1.05, y: -5 }}
-      className={`p-4 rounded-xl shadow-sm transition-all duration-300 ${
+      className={`p-2 sm:p-3 rounded-lg sm:rounded-xl shadow-sm transition-all duration-300 ${
         darkMode 
           ? `bg-gray-800 hover:bg-gray-750 ${colorClasses[color].darkBg}` 
           : `bg-white hover:bg-gray-50 ${colorClasses[color].bg}`
@@ -511,16 +508,16 @@ function OverviewCard({ title, value, icon, color, darkMode }) {
     >
       <div className="flex items-center justify-between">
         <div>
-          <p className={`text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+          <p className={`text-xs sm:text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             {title}
           </p>
-          <p className={`text-2xl font-bold ${darkMode ? colorClasses[color].darkText : colorClasses[color].text}`}>
+          <p className={`text-lg sm:text-xl font-bold ${darkMode ? colorClasses[color].darkText : colorClasses[color].text}`}>
             {value}
           </p>
         </div>
         <motion.div 
           whileHover={{ rotate: 10 }}
-          className={`p-3 rounded-full ${darkMode ? 'bg-gray-700' : 'bg-white'}`}
+          className={`p-1 sm:p-2 rounded-full ${darkMode ? 'bg-gray-700' : 'bg-white'}`}
         >
           {icon}
         </motion.div>
@@ -556,13 +553,13 @@ function NotificationItem({ type, title, content, darkMode }) {
     <motion.div 
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      className={`p-4 rounded-lg border ${typeStyles[type].bg} ${typeStyles[type].border}`}
+      className={`p-3 rounded-lg border ${typeStyles[type].bg} ${typeStyles[type].border}`}
     >
       <div className="flex items-start">
-        <span className="text-xl mr-3">{typeStyles[type].icon}</span>
-        <div className="flex-1">
-          <p className={`font-medium ${typeStyles[type].text}`}>{title}</p>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{content}</p>
+        <span className="text-lg mr-2">{typeStyles[type].icon}</span>
+        <div className="flex-1 min-w-0">
+          <p className={`font-medium text-sm ${typeStyles[type].text}`}>{title}</p>
+          <p className="mt-1 text-xs text-gray-600 dark:text-gray-300 truncate">{content}</p>
         </div>
       </div>
     </motion.div>
@@ -583,10 +580,10 @@ function QuickActionButton({ title, icon, onClick, color, darkMode }) {
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
       onClick={onClick}
-      className={`p-4 rounded-xl text-white ${colorClasses[color].bg} ${colorClasses[color].hover} transition-colors duration-200 flex flex-col items-center justify-center`}
+      className={`p-2 sm:p-3 rounded-lg text-white ${colorClasses[color].bg} ${colorClasses[color].hover} transition-colors duration-200 flex flex-col items-center justify-center`}
     >
-      <div className="text-2xl mb-2">{icon}</div>
-      <span className="text-sm font-medium">{title}</span>
+      <div className="text-lg sm:text-xl mb-1 sm:mb-2">{icon}</div>
+      <span className="text-xs sm:text-sm font-medium">{title}</span>
     </motion.button>
   );
 }
@@ -596,11 +593,11 @@ function PieChart({ pieData }) {
   const [activeIndex, setActiveIndex] = useState(null);
   const total = pieData.reduce((sum, s) => sum + s.value, 0) || 1;
   let cumulative = 0;
-  const radius = 50, cx = 60, cy = 60;
+  const radius = 40, cx = 50, cy = 50;
   
   return (
     <div className="relative">
-      <svg width={120} height={120} viewBox="0 0 120 120" className="flex-shrink-0">
+      <svg width={100} height={100} viewBox="0 0 100 100" className="flex-shrink-0">
         {pieData.map((s, i) => {
           if (s.value === 0) return null;
           
@@ -632,7 +629,7 @@ function PieChart({ pieData }) {
           );
         })}
         <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#e5e7eb" strokeWidth={2} />
-        <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" fontSize="14" fontWeight="bold" fill="currentColor">
+        <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" fontSize="12" fontWeight="bold" fill="currentColor">
           {total}
         </text>
       </svg>
@@ -642,10 +639,10 @@ function PieChart({ pieData }) {
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="absolute bg-gray-900 text-white p-2 rounded-lg text-sm shadow-lg z-10"
+          className="absolute bg-gray-900 text-white p-2 rounded-lg text-xs shadow-lg z-10 hidden sm:block"
           style={{ 
             top: 0, 
-            left: 130,
+            left: 110,
             transform: 'translateY(-50%)'
           }}
         >

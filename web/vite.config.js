@@ -1,12 +1,14 @@
+// vite.config.js
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vitejs.dev/config/
+// Konfigurasi untuk React + deploy di subpath /web/
 export default defineConfig({
   plugins: [react()],
+  base: '/web/', // penting kalau app nanti diakses via domain.com/web/
   build: {
     outDir: 'dist',
-    sourcemap: false
-  },
-  base: '/web/' // Penting untuk deploy di subpath
+    sourcemap: false,
+    assetsDir: 'assets'
+  }
 })
