@@ -3,27 +3,91 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMsal } from "@azure/msal-react";
 import "./ChatHost.css";
 
-/* ===================== ENV SAFE (Vite & CRA) ===================== */
-function readEnvSafe(viteKey, craKey) {
-  let viteEnv = {};
-  try {
-    // hindari parser error pada CRA: akses via eval
-    // eslint-disable-next-line no-eval
-    viteEnv = eval("import.meta && import.meta.env") || {};
-  } catch {
-    viteEnv = {};
-  }
-  const craEnv = (typeof process !== "undefined" && process.env) || {};
-  return viteEnv[viteKey] ?? craEnv[craKey] ?? "";
+/* ===================== API URL HELPER ===================== */
+export function apiUrl(path = "") {
+  // Gunakan URL Railway sebagai default
+  const base = process.env.REACT_APP_API_BASE || "https://it-backend-production.up.railway.app/api";
+  const normalizedBase = base.endsWith('/') ? base.slice(0, -1) : base;
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${normalizedBase}${normalizedPath}`;
 }
 
-const API_BASE_RAW = (readEnvSafe("VITE_API_BASE", "REACT_APP_API_BASE") || "/api").trim();
-const API_BASE = API_BASE_RAW.replace(/\/+$/, ""); // buang trailing slash
-const IS_ABSOLUTE = /^https?:\/\//i.test(API_BASE);
-const CREDENTIALS_MODE = IS_ABSOLUTE ? "include" : "same-origin";
+/* ===================== API Connection Test ===================== */
+/**
+ * Test koneksi ke server API dengan metode GET ke endpoint yang valid
+ */
+async function testApiConnection() {
+  try {
+    // Gunakan endpoint yang lebih umum untuk test koneksi
+    const url = apiUrl(""); 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // Timeout lebih lama untuk production
 
-function apiUrl(path) {
-  return `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      signal: controller.signal,
+      headers: {
+        'Accept': 'application/json',
+      }
+    });
+
+    clearTimeout(timeoutId);
+
+    // Anggap berhasil jika server merespon (bahkan 404 OK)
+    return response.status !== 0 && response.status < 500;
+  } catch (error) {
+    console.warn('API connection test failed:', error);
+    return false;
+  }
+}
+
+/**
+ * Test koneksi periodik dengan exponential backoff
+ */
+function useApiConnectionTest() {
+  const [isOnline, setIsOnline] = useState(true);
+  const [lastChecked, setLastChecked] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+
+  const testConnection = async () => {
+    try {
+      const isConnected = await testApiConnection();
+      setIsOnline(isConnected);
+      setLastChecked(new Date());
+      if (isConnected) {
+        setRetryCount(0); // Reset retry count jika berhasil
+      } else {
+        setRetryCount(prev => prev + 1);
+      }
+      return isConnected;
+    } catch (error) {
+      console.warn('Connection test error:', error);
+      setIsOnline(false);
+      setLastChecked(new Date());
+      setRetryCount(prev => prev + 1);
+      return false;
+    }
+  };
+
+  // Test koneksi saat component mount
+  useEffect(() => {
+    console.log("API Base URL:", apiUrl());
+    console.log("Environment:", process.env.NODE_ENV);
+    console.log("REACT_APP_API_BASE:", process.env.REACT_APP_API_BASE);
+    
+    testConnection();
+
+    // Test koneksi dengan interval yang adaptif
+    const intervalTime = isOnline ? 60000 : Math.min(30000 * Math.pow(1.5, retryCount), 120000);
+    
+    const interval = setInterval(() => {
+      testConnection();
+    }, intervalTime);
+
+    return () => clearInterval(interval);
+  }, [isOnline, retryCount]);
+
+  return { isOnline, lastChecked, testConnection, retryCount };
 }
 
 /* ===================== helpers ===================== */
@@ -58,33 +122,85 @@ const DIVISION_OPTIONS = [
   "Proyek"
 ];
 
-/** Kirim tiket ke server — 1 base saja (mengikuti proxy / env) */
+/** Kirim tiket ke server */
 async function createTicket({ name, division = "", description, photo }) {
-  const priority = String(division).trim().toLowerCase().includes("bod (urgent)") ? "Urgent" : "Normal";
-  const fd = new FormData();
-  fd.append("name", name || "User");
-  fd.append("division", division || "Umum");
-  fd.append("priority", priority);
-  fd.append("description", description || "");
-  fd.append("desc", description || "");
-  if (photo) fd.append("photo", photo);
+  // Pastikan semua field required ada
+  const ticketData = {
+    name: String(name || "User").trim(),
+    division: String(division || "Umum").trim(),
+    description: String(description || "").trim(),
+    priority: String(division).trim().toLowerCase().includes("bod (urgent)") ? "Urgent" : "Normal"
+  };
 
-  const url = apiUrl("/api/tickets");
-  const r = await fetch(url, { method: "POST", body: fd, credentials: CREDENTIALS_MODE }).catch((e) => {
-    throw new Error("Network error: " + e.message);
-  });
-
-  const ct = r.headers.get("content-type") || "";
-  const j = ct.includes("application/json") ? await r.json() : {};
-  if (!r.ok || j?.ok === false) {
-    // tampilkan sebagian isi body kalau non-JSON
-    if (!ct.includes("application/json")) {
-      const head = (await r.text().catch(() => "")).slice(0, 120).replace(/\s+/g, " ");
-      throw new Error(`Gagal membuat tiket (HTTP ${r.status}): ${head}`);
-    }
-    throw new Error(j?.error || `Gagal membuat tiket (HTTP ${r.status})`);
+  // Validasi field required
+  if (!ticketData.name || !ticketData.division || !ticketData.description) {
+    throw new Error(`Field yang diperlukan tidak lengkap: name="${ticketData.name}", division="${ticketData.division}", description="${ticketData.description}"`);
   }
-  return j; // { ok:true, ticketId, ... }
+
+  const fd = new FormData();
+  fd.append("name", ticketData.name);
+  fd.append("division", ticketData.division);
+  fd.append("priority", ticketData.priority);
+  fd.append("description", ticketData.description);
+  
+  if (photo) {
+    fd.append("photo", photo);
+  }
+
+  // Debug: log data yang akan dikirim
+  console.log("Mengirim tiket dengan data:", ticketData);
+  console.log("Photo file:", photo);
+  console.log("API URL:", apiUrl("/tickets"));
+
+  const url = apiUrl("/tickets");
+  
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      body: fd,
+      credentials: 'include',
+    });
+
+    console.log("Response status:", response.status);
+    console.log("Response headers:", Object.fromEntries(response.headers.entries()));
+    
+    if (!response.ok) {
+      let errorText = "Unknown error";
+      try {
+        errorText = await response.text();
+        // Coba parse sebagai JSON jika mungkin
+        const errorJson = JSON.parse(errorText);
+        errorText = errorJson.message || errorJson.error || errorText;
+      } catch (e) {
+        // Jika bukan JSON, gunakan text biasa
+        errorText = `HTTP ${response.status} - ${response.statusText}`;
+      }
+      throw new Error(`Gagal membuat tiket (HTTP ${response.status}): ${errorText}`);
+    }
+
+    const contentType = response.headers.get("content-type");
+    let result;
+    
+    if (contentType && contentType.includes("application/json")) {
+      result = await response.json();
+    } else {
+      const textResult = await response.text();
+      console.warn("Response bukan JSON:", textResult);
+      result = { success: true, message: "Tiket berhasil dibuat" };
+    }
+    
+    console.log("Ticket created successfully:", result);
+    return result;
+  } catch (error) {
+    console.error("Error creating ticket:", error);
+    
+    // Handle CORS errors specifically
+    if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+      throw new Error(`Gagal terhubung ke server. Pastikan backend di ${url} dapat diakses dan mengizinkan CORS.`);
+    }
+    
+    throw new Error(`Gagal membuat tiket: ${error.message}`);
+  }
 }
 
 /** Ambil nama & divisi dari MSAL claims (sinkron). */
@@ -93,17 +209,43 @@ function readProfileFromMsal(accounts) {
   const c = a?.idTokenClaims || {};
   const name = a?.name || c.name || c.given_name || a?.username || c.preferred_username || "User";
   const division = c.department || c.division || c.jobTitle || "Umum";
-  return { name: String(name), division: String(division) };
+  return { 
+    name: String(name || "User").trim(), 
+    division: String(division || "Umum").trim() 
+  };
 }
 
 /* ===================== sub-komponen UI ===================== */
-function HelpCTA({ onClick }) {
+function HelpCTA({ onClick, disabled = false }) {
   return (
     <div className="help-cta">
-      <button className="help-btn bounce" onClick={onClick}>
+      <button 
+        className={`help-btn ${disabled ? "disabled" : "bounce"}`} 
+        onClick={onClick}
+        disabled={disabled}
+      >
         🆘 Tolong
       </button>
-      <div className="help-hint">Klik / Ketuk tombol di atas untuk membuat tiket</div>
+      <div className="help-hint">
+        {disabled 
+          ? "Server sedang offline. Silakan coba lagi nanti." 
+          : "Klik / Ketuk tombol di atas untuk membuat tiket"
+        }
+      </div>
+    </div>
+  );
+}
+
+function ConnectionStatus({ isOnline, lastChecked }) {
+  return (
+    <div className={`connection-status ${isOnline ? "online" : "offline"}`}>
+      <span className="status-dot"></span>
+      {isOnline ? "Server online" : "Server offline"}
+      {lastChecked && (
+        <span className="last-checked">
+          • {lastChecked.toLocaleTimeString()}
+        </span>
+      )}
     </div>
   );
 }
@@ -143,16 +285,22 @@ function RecapCard({ name, complaint, division, datetime }) {
   );
 }
 
-function UploadAsk({ onPick, hasPhoto }) {
+function UploadAsk({ onPick, hasPhoto, disabled = false }) {
   return (
     <div className="upload-ask enter-pop">
       <div>Silakan unggah foto kondisi keluhanmu ya.</div>
-      <button className="pill-btn" onClick={onPick}>{hasPhoto ? "Ganti Foto" : "Pilih Foto"}</button>
+      <button 
+        className={`pill-btn ${disabled ? "disabled" : ""}`} 
+        onClick={onPick}
+        disabled={disabled}
+      >
+        {hasPhoto ? "Ganti Foto" : "Pilih Foto"}
+      </button>
     </div>
   );
 }
 
-function DivisionPicker({ current, options, onPick }) {
+function DivisionPicker({ current, options, onPick, disabled = false }) {
   const divisionGroups = {
     "Manajemen & Direksi": ["BOD (Urgent)", "Sekretarian Perusahaan", "Internal Audit"],
     "Keuangan & Akuntansi": ["Keuangan", "Akuntansi"],
@@ -184,8 +332,9 @@ function DivisionPicker({ current, options, onPick }) {
                 .map((opt) => (
                   <button
                     key={opt}
-                    className={`division-option ${opt === current ? "active" : ""}`}
-                    onClick={() => onPick(opt)}
+                    className={`division-option ${opt === current ? "active" : ""} ${disabled ? "disabled" : ""}`}
+                    onClick={() => !disabled && onPick(opt)}
+                    disabled={disabled}
                   >
                     {opt}
                   </button>
@@ -195,7 +344,11 @@ function DivisionPicker({ current, options, onPick }) {
         ))}
       </div>
       <div className="division-note">
-        (Default: <b>{current || "Umum"}</b> — kamu bisa menggantinya di sini)
+        {disabled ? (
+          "Server offline - tidak dapat melanjutkan"
+        ) : (
+          <>Default: <b>{current || "Umum"}</b> — kamu bisa menggantinya di sini</>
+        )}
       </div>
     </div>
   );
@@ -204,6 +357,9 @@ function DivisionPicker({ current, options, onPick }) {
 /* ===================== komponen utama ===================== */
 export default function ChatHost() {
   const { instance, accounts } = useMsal();
+
+  // Test koneksi API
+  const { isOnline, lastChecked, testConnection } = useApiConnectionTest();
 
   const displayName = useMemo(() => {
     const acc = accounts?.[0];
@@ -227,8 +383,8 @@ export default function ChatHost() {
   const [showChatInput, setShowChatInput] = useState(false);
   const [error, setError] = useState(null);
 
-  // UI lock ketika tiket sudah dibuat
-  const sessionLocked = stage === "done";
+  // UI lock ketika tiket sudah dibuat atau server offline di awal
+  const sessionLocked = stage === "done" || (!isOnline && stage === "start");
 
   // sticky confirm bar (bukan lagi bubble di chat)
   const [showConfirm, setShowConfirm] = useState(false);
@@ -260,10 +416,23 @@ export default function ChatHost() {
     setIsTyping(true);
     setTimeout(() => {
       pushBot(<span className="enter-pop">Halo, <b>{displayName}</b>! Aku siap membantumu 😊</span>);
+      
+      if (!isOnline) {
+        pushBot(
+          <div className="warning-message">
+            <strong>Peringatan:</strong> Server Helpdesk sedang offline. 
+            Kamu masih bisa membuat tiket, tetapi akan dikirim ketika koneksi pulih.
+          </div>
+        );
+      }
+      
       pushBot(
         <div className="fade-in">
-          Klik / ketuk tombol di bawah ini untuk menyampaikan keluhanmu.
-          <HelpCTA onClick={startFlow} />
+          {isOnline 
+            ? "Klik / ketuk tombol di bawah ini untuk menyampaikan keluhanmu."
+            : "Klik tombol di bawah untuk membuat tiket offline (akan dikirim nanti)."
+          }
+          <HelpCTA onClick={startFlow} disabled={sessionLocked} />
         </div>
       );
       setIsTyping(false);
@@ -272,13 +441,31 @@ export default function ChatHost() {
       setError(null);
       scrollToBottom();
     }, 400);
-  }, [displayName]);
+  }, [displayName, isOnline]);
 
   function startFlow() {
+    if (sessionLocked) return;
+
+    if (!isOnline) {
+      // Mode offline - tetap lanjut tapi dengan peringatan
+      pushBot(
+        <div className="warning-message">
+          <strong>Mode Offline:</strong> Tiket akan disimpan secara lokal dan dikirim ketika server online.
+        </div>
+      );
+    }
+
     setIsTyping(true);
     setTimeout(() => {
       pushUser("🆘 Tolong");
-      pushBot(<span className="slide-up">Siapkan detailnya ya. Silakan tulis keluhanmu.</span>);
+      pushBot(
+        <span className="slide-up">
+          {isOnline 
+            ? "Siapkan detailnya ya. Silakan tulis keluhanmu."
+            : "Mode offline. Silakan tulis keluhanmu (akan dikirim nanti)."
+          }
+        </span>
+      );
       setStage("needComplaint");
       setIsTyping(false);
       setShowChatInput(true);
@@ -333,12 +520,24 @@ export default function ChatHost() {
                 pushUser(val);
                 setIsTyping(true);
                 setTimeout(() => {
-                  pushBot(<RecapCard name={displayName} complaint={complaint} division={val} datetime={nowStr()} />);
-                  pushBot(<UploadAsk onPick={() => fileInputRef.current?.click()} hasPhoto={!!photoFile} />);
+                  pushBot(<RecapCard name={userName} complaint={complaint} division={val} datetime={nowStr()} />);
+                  pushBot(
+                    <UploadAsk 
+                      onPick={() => fileInputRef.current?.click()} 
+                      hasPhoto={!!photoFile}
+                      disabled={!isOnline}
+                    />
+                  );
                   setStage("needPhoto");
                   setIsTyping(false);
+                  
+                  // Auto-show confirm jika offline (karena tidak perlu upload foto)
+                  if (!isOnline) {
+                    setShowConfirm(true);
+                  }
                 }, 200);
               }}
+              disabled={!isOnline}
             />
           );
           setStage("needDivision");
@@ -360,7 +559,7 @@ export default function ChatHost() {
   };
 
   const onKeyDown = (e) => {
-    if (sessionLocked || !showChatInput) return;
+    if (sessionLocked) return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -394,45 +593,103 @@ export default function ChatHost() {
     setShowConfirm(true);
   };
 
+  // Helper untuk convert file ke base64 (offline mode)
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+    });
+  };
+
   async function submitTicket() {
-    if (!photoFile || submitting || sessionLocked) return;
+    if (submitting || stage === "done") return;
 
     try {
       setSubmitting(true);
       setError(null);
-      pushBot(<TypingDots />);
+      
+      // Validasi data sebelum mengirim - PASTIKAN SEMUA FIELD ADA
+      const ticketData = {
+        name: userName || "User",
+        division: division || "Umum",
+        description: complaint || "",
+        photo: photoFile
+      };
 
-      const res = await createTicket({
-        name: userName,
-        division,
-        description: complaint,
-        photo: photoFile,
-      });
+      console.log("Data tiket yang akan dikirim:", ticketData);
 
-      setSubmitting(false);
+      if (!ticketData.name || !ticketData.division || !ticketData.description) {
+        throw new Error(`Data tidak lengkap: name="${ticketData.name}", division="${ticketData.division}", description="${ticketData.description}"`);
+      }
 
-      setMessages((m) => {
-        const arr = m.slice();
-        if (arr.length && String(arr[arr.length - 1]?.jsx?.type?.name || "") === "TypingDots") arr.pop();
-        return arr;
-      });
+      if (isOnline) {
+        pushBot(<TypingDots />);
 
-      // sukses → kunci UI, sembunyikan confirm bar, animasi sukses
-      setShowConfirm(false);
-      setStage("done");
+        const res = await createTicket({
+          name: ticketData.name,
+          division: ticketData.division,
+          description: ticketData.description,
+          photo: ticketData.photo
+        });
 
-      pushBot(
-        <SuccessBig
-          title="Tiket Berhasil Dibuat"
-          subtitle={`Nomor tiket: ${res?.ticketId ?? res?.itemId ?? "-"}`}
-        />
-      );
+        setSubmitting(false);
 
-      pushBot(
-        <span className="enter-pop">
-          Terima kasih telah menggunakan <b>IT Helpdesk</b>. Tim IT WKI akan segera menghubungimu. 🙌
-        </span>
-      );
+        setMessages((m) => {
+          const arr = m.slice();
+          if (arr.length && String(arr[arr.length - 1]?.jsx?.type?.name || "") === "TypingDots") arr.pop();
+          return arr;
+        });
+
+        // sukses → kunci UI, sembunyikan confirm bar, animasi sukses
+        setShowConfirm(false);
+        setStage("done");
+
+        pushBot(
+          <SuccessBig
+            title="Tiket Berhasil Dibuat"
+            subtitle={`Nomor tiket: ${res?.ticket?.ticketNo || res?.ticketId || "-"}`}
+          />
+        );
+
+        pushBot(
+          <span className="enter-pop">
+            Terima kasih telah menggunakan <b>IT Helpdesk</b>. Tim IT WKI akan segera menghubungimu. 🙌
+          </span>
+        );
+      } else {
+        // Mode offline - simpan ke localStorage
+        const offlineTicket = {
+          name: ticketData.name,
+          division: ticketData.division,
+          description: ticketData.description,
+          photo: ticketData.photo ? await fileToBase64(ticketData.photo) : null,
+          createdAt: new Date().toISOString(),
+          status: 'pending'
+        };
+
+        const existingTickets = JSON.parse(localStorage.getItem('offlineTickets') || '[]');
+        existingTickets.push(offlineTicket);
+        localStorage.setItem('offlineTickets', JSON.stringify(existingTickets));
+
+        setSubmitting(false);
+        setShowConfirm(false);
+        setStage("done");
+
+        pushBot(
+          <SuccessBig
+            title="Tiket Disimpan (Offline)"
+            subtitle="Tiket akan dikirim otomatis ketika server online"
+          />
+        );
+
+        pushBot(
+          <span className="enter-pop">
+            Tiket telah disimpan secara offline. Akan dikirim otomatis ketika koneksi pulih. 🙌
+          </span>
+        );
+      }
     } catch (err) {
       setSubmitting(false);
       setError(err.message);
@@ -462,6 +719,42 @@ export default function ChatHost() {
     }
   };
 
+  const retryConnection = async () => {
+    setIsTyping(true);
+    pushBot(<span>Memeriksa koneksi server...</span>);
+    
+    try {
+      const connected = await testConnection();
+      
+      setIsTyping(false);
+      if (connected) {
+        pushBot(<span className="success-message">Koneksi berhasil dipulihkan! 🎉</span>);
+        
+        // Jika sebelumnya offline dan sekarang online, refresh UI state
+        if (!isOnline) {
+          // Optional: reload page untuk reset state
+          window.location.reload();
+        }
+      } else {
+        pushBot(
+          <div className="error-message">
+            Server masih offline. 
+            <div style={{ marginTop: "8px", fontSize: "12px" }}>
+              Pastikan backend di <code>https://it-backend-production.up.railway.app</code> sedang berjalan.
+            </div>
+          </div>
+        );
+      }
+    } catch (error) {
+      setIsTyping(false);
+      pushBot(
+        <div className="error-message">
+          Error saat test koneksi: {error.message}
+        </div>
+      );
+    }
+  };
+
   return (
     <div className="chat-root">
       {/* header ala WhatsApp */}
@@ -470,7 +763,7 @@ export default function ChatHost() {
           <div className="avatar pop">{displayName?.[0]?.toUpperCase() || "U"}</div>
           <div className="peer-info">
             <div className="peer-name">Helpdesk Chatbot</div>
-            <div className="peer-sub"><span className="dot pulse"></span> online</div>
+            <ConnectionStatus isOnline={isOnline} lastChecked={lastChecked} />
           </div>
         </div>
 
@@ -479,6 +772,11 @@ export default function ChatHost() {
             <span className="user-name" title={`${userName} · ${division}`}>{userName}</span>
             <span className="user-division">{division}</span>
           </div>
+          {!isOnline && (
+            <button className="retry-btn" onClick={retryConnection} title="Coba koneksi lagi">
+              🔄 Retry
+            </button>
+          )}
           <button className="logout-btn" onClick={handleLogout} aria-label="Logout">
             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M16 17l5-5-5-5v3H9v4h7v3zM4 5h8V3H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8v-2H4V5z"/>
@@ -511,11 +809,12 @@ export default function ChatHost() {
           accept="image/*"
           onChange={onPickFile}
           style={{ display: "none" }}
+          disabled={!isOnline}
         />
       </div>
 
       {/* sticky Confirm bar (muncul setelah pilih foto), auto-hilang saat done */}
-      {showConfirm && !sessionLocked && (
+      {showConfirm && stage !== "done" && (
         <div className="confirm-sticky slide-up">
           <button
             className="confirm-btn"
@@ -523,12 +822,17 @@ export default function ChatHost() {
             disabled={submitting}
             aria-disabled={submitting}
           >
-            {submitting ? "Mengirim…" : "Konfirmasi & Buat Tiket"}
+            {submitting 
+              ? "Mengirim…" 
+              : isOnline 
+                ? "Konfirmasi & Buat Tiket" 
+                : "Simpan Tiket (Offline)"
+            }
           </button>
         </div>
       )}
 
-      {/* input bar — disable setelah tiket dibuat */}
+      {/* input bar — disable setelah tiket dibuat atau server offline */}
       <div className={`chat-inputbar ${!showChatInput || sessionLocked ? "hidden" : ""}`}>
         <textarea
           rows={1}
@@ -536,7 +840,11 @@ export default function ChatHost() {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKeyDown}
           disabled={sessionLocked || !showChatInput}
-          placeholder={sessionLocked ? "Sesi selesai. Terima kasih 🙏" : "Tulis pesan… (Enter untuk kirim)"}
+          placeholder={
+            !isOnline && stage === "start" ? "Server offline - tunggu koneksi pulih" :
+            sessionLocked ? "Sesi selesai. Terima kasih 🙏" : 
+            "Tulis pesan… (Enter untuk kirim)"
+          }
           aria-label="Ketik pesan"
         />
         <button

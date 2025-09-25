@@ -2,16 +2,14 @@
   "name": "wki-monorepo",
   "private": true,
   "scripts": {
-    "dev": "concurrently -k -p \"[{name}]\" -n SVR,STK,WEB -c green,magenta,cyan \"npm run dev:server\" \"npm run dev:stok\" \"npm run dev:web\"",
+    "dev": "concurrently -k -p \"[{name}]\" -n SVR,STK,WEB -c green,magenta,cyan \"npm run dev:server\" \"npm run dev:stok\"",
     "dev:server": "cd server && npm run dev",
     "dev:stok": "cd stok && npm run dev",
-    "dev:web": "cd web && npm run dev",
-    "build": "npm run build:server && npm run build:stok && npm run build:web",
+    "build": "npm run build:server && npm run build:stok",
     "build:server": "cd server && npm run build",
     "build:stok": "cd stok && npm run build",
-    "build:web": "cd web && npm run build",
     "vercel-build": "npm run build",
-    "install:all": "npm install && cd server && npm install && cd ../stok && npm install && cd ../web && npm install"
+    "install:all": "npm install && cd server && npm install && cd ../stok && npm install"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
@@ -20,5 +18,8 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "framer-motion": "^12.23.21"
   }
 }
